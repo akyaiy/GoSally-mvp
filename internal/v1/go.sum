@@ -1,10 +1,8 @@
 github.com/BurntSushi/toml v1.2.1/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbicEuybxQ=
 github.com/BurntSushi/toml v1.5.0 h1:W5quZX/G/csjUnuI8SUYlsHs9M38FC7znL0lIO+DvMg=
 github.com/BurntSushi/toml v1.5.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
-github.com/akyaiy/GoSally-mvp/internal/config v0.0.0-20250622083853-07e1d3ecddf4 h1:pRcNlKaQUEvAjC9ideN8YZc2vCryTI6q045qf+NkfpI=
-github.com/akyaiy/GoSally-mvp/internal/config v0.0.0-20250622083853-07e1d3ecddf4/go.mod h1:VCJJWOEkisTU5IBIuNVEc2ahosMRnoVy/I/Dnf79KVM=
-github.com/akyaiy/GoSally-mvp/internal/config v0.0.0-20250622085416-0d8673254eab h1:sQ+X/sOARqdsWPI6406uMEPiffgSoMVbielbELUfl84=
-github.com/akyaiy/GoSally-mvp/internal/config v0.0.0-20250622085416-0d8673254eab/go.mod h1:VCJJWOEkisTU5IBIuNVEc2ahosMRnoVy/I/Dnf79KVM=
+github.com/akyaiy/GoSally-mvp/internal/config v0.0.0-20250622085654-213db0b8c73b h1:RTHso+pWhmwWLFVMCMt6ZZ5oGGh0jbOAlN8vBnD2G8o=
+github.com/akyaiy/GoSally-mvp/internal/config v0.0.0-20250622085654-213db0b8c73b/go.mod h1:VCJJWOEkisTU5IBIuNVEc2ahosMRnoVy/I/Dnf79KVM=
 github.com/go-chi/chi/v5 v5.2.2 h1:CMwsvRVTbXVytCk1Wd72Zy1LAsAh9GxMmSNWLHCG618=
 github.com/go-chi/chi/v5 v5.2.2/go.mod h1:L2yAIGWB3H+phAw1NxKwWM+7eUH/lU8pOMm5hHcoops=
 github.com/ilyakaznacheev/cleanenv v1.5.0 h1:0VNZXggJE2OYdXE87bfSSwGxeiGt9moSR2lOrsHHvr4=

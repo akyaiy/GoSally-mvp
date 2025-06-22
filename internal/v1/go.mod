@@ -1,9 +1,9 @@
-module github.com/akyaiy/GoSally-mvp/internal/server/v1
+module github.com/akyaiy/GoSally-mvp/internal/v1
 
 go 1.24.4
 
 require (
-	github.com/akyaiy/GoSally-mvp/internal/config v0.0.0-20250622085416-0d8673254eab
+	github.com/akyaiy/GoSally-mvp/internal/config v0.0.0-20250622085654-213db0b8c73b
 	github.com/go-chi/chi/v5 v5.2.2
 	github.com/yuin/gopher-lua v1.1.1
 )
