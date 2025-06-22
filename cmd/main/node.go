@@ -1,8 +1,8 @@
 package main
 
 import (
-	"GoSally-mvp/internal/config"
-	"GoSally-mvp/internal/logs"
+	"github.com/akyaiy/GoSally-mvp/internal/config"
+	"github.com/akyaiy/GoSally-mvp/internal/logs"
 	"crypto/rand"
 	"encoding/hex"
 	"log/slog"
