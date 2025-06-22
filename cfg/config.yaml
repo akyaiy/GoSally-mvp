@@ -4,5 +4,10 @@ http_server:
   address: "localhost:8080"
   timeout: 3s
   idle_timeout: 30s
+  api:
+    latest-version: v1
+    layers:
+      - b1
+      - s2
 
 com_dir: "com/"

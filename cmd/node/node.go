@@ -6,6 +6,7 @@ import (
 	"regexp"
 
 	"github.com/akyaiy/GoSally-mvp/config"
+	gs "github.com/akyaiy/GoSally-mvp/general_server"
 	"github.com/akyaiy/GoSally-mvp/logs"
 	"github.com/akyaiy/GoSally-mvp/sv1"
 
@@ -31,18 +32,18 @@ func main() {
 		Config:         cfg,
 		AllowedCmd:     regexp.MustCompile(`^[a-zA-Z0-9]+$`),
 		ListAllowedCmd: regexp.MustCompile(`^[a-zA-Z0-9_-]+$`),
+		Ver:            "v1",
 	})
+	s := gs.InitGeneral(&gs.GeneralServerInit{
+		Log:    *logs.SetupLogger(cfg.Mode),
+		Config: cfg,
+	}, serverv1)
 	r := chi.NewRouter()
-	r.Route("/v1/com", func(r chi.Router) {
-		r.Get("/", serverv1.HandleList)
-		r.Get("/{cmd}", serverv1.Handle)
+	r.Route("/{ver}/com", func(r chi.Router) {
+		r.Get("/", s.HandleList)
+		r.Get("/{cmd}", s.Handle)
 	})
-	// r.Route("/v2/com", func(r chi.Router) {
-	// 	r.Get("/", handleV1ComList)
-	// 	r.Get("/{cmd}", handleV1)
-	// })
 	r.NotFound(serverv1.ErrNotFound)
 	log.Info("Server started", slog.String("address", cfg.Address))
 	http.ListenAndServe(cfg.Address, r)
-
 }

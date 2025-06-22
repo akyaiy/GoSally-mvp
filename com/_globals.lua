@@ -5,6 +5,3 @@ Params = {}
 
 ---@type AnyTable
 Result = {}
-
----@type AnyTable
-Me = {}

@@ -28,7 +28,11 @@ func (h *HandlerV1) newUUID() string {
 
 func (h *HandlerV1) _errNotFound() {
 	h.writeJSONError(http.StatusBadRequest, "invalid request")
-	h.log.Error("HTTP request error", slog.String("remote", h.r.RemoteAddr), slog.String("method", h.r.Method), slog.String("url", h.r.URL.String()), slog.Int("status", http.StatusBadRequest))
+	h.log.Error("HTTP request error",
+		slog.String("remote", h.r.RemoteAddr),
+		slog.String("method", h.r.Method),
+		slog.String("url", h.r.URL.String()),
+		slog.Int("status", http.StatusBadRequest))
 }
 
 func (h *HandlerV1) writeJSONError(status int, msg string) {
@@ -54,4 +58,35 @@ func (h *HandlerV1) extractDescriptionStatic(path string) (string, error) {
 		return "", nil
 	}
 	return m[1], nil
+}
+
+func (h *HandlerV1) comMatch(ver string, comName string) string {
+	files, err := os.ReadDir(h.cfg.ComDir)
+	if err != nil {
+		h.log.Error("Failed to read com dir",
+			slog.String("error", err.Error()))
+		return ""
+	}
+
+	baseName := comName + ".lua"
+	verName := comName + "?" + ver + ".lua"
+
+	var baseFileFound string
+
+	for _, f := range files {
+		if f.IsDir() {
+			continue
+		}
+		fname := f.Name()
+
+		if fname == verName {
+			return fname
+		}
+
+		if fname == baseName {
+			baseFileFound = fname
+		}
+	}
+
+	return baseFileFound
 }

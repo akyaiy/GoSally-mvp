@@ -1,4 +1,4 @@
---- #description = "Echoes back the message provided in the 'msg' parameter."
+--- #description = "Echoes back the message provided in the 'msg' parameter. b1"
 
 if not Params.msg then
     Result.status = "error"
