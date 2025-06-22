@@ -21,7 +21,7 @@ type HTTPServer struct {
 }
 
 type ConfigEnv struct {
-	ConfigPath string `env:"CONFIG_PATH" env-default:"./config/config.yaml"`
+	ConfigPath string `env:"CONFIG_PATH" env-default:"./cfg/config.yaml"`
 }
 
 func MustLoadConfig() *ConfigConf {
