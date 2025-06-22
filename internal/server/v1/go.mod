@@ -3,7 +3,7 @@ module github.com/akyaiy/GoSally-mvp/internal/server/v1
 go 1.24.4
 
 require (
-	github.com/akyaiy/GoSally-mvp/internal/config v0.0.0-20250622083853-07e1d3ecddf4
+	github.com/akyaiy/GoSally-mvp/internal/config v0.0.0-20250622085416-0d8673254eab
 	github.com/go-chi/chi/v5 v5.2.2
 	github.com/yuin/gopher-lua v1.1.1
 )
