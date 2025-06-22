@@ -1,4 +1,4 @@
-package v1
+package sv1
 
 import (
 	"log/slog"
@@ -27,6 +27,14 @@ type ServerV1Contract interface {
 	_handleList()
 }
 
+// structure only for initialization
+type HandlerV1InitStruct struct {
+	Log            slog.Logger
+	Config         *config.ConfigConf
+	AllowedCmd     *regexp.Regexp
+	ListAllowedCmd *regexp.Regexp
+}
+
 type HandlerV1 struct {
 	w http.ResponseWriter
 	r *http.Request
@@ -39,8 +47,13 @@ type HandlerV1 struct {
 	listAllowedCmd *regexp.Regexp
 }
 
-func InitV1Server(o *HandlerV1) *HandlerV1 {
-	return o
+func InitV1Server(o *HandlerV1InitStruct) *HandlerV1 {
+	return &HandlerV1{
+		log:            o.Log,
+		cfg:            o.Config,
+		allowedCmd:     o.AllowedCmd,
+		listAllowedCmd: o.ListAllowedCmd,
+	}
 }
 
 func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {

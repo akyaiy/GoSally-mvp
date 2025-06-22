@@ -7,15 +7,13 @@ import (
 
 	"github.com/akyaiy/GoSally-mvp/config"
 	"github.com/akyaiy/GoSally-mvp/logs"
-	//"github.com/akyaiy/GoSally-mvp/v1"
+	"github.com/akyaiy/GoSally-mvp/sv1"
 
 	"github.com/go-chi/chi/v5"
 )
 
-var allowedCmd = regexp.MustCompile(`^[a-zA-Z0-9]+$`)
 var log *slog.Logger
 var cfg *config.ConfigConf
-var listAllowedCmd = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`) // allowed symbols after first symbol
 
 func init() {
 	cfg = config.MustLoadConfig()
@@ -28,17 +26,22 @@ func init() {
 }
 
 func main() {
-
+	serverv1 := sv1.InitV1Server(&sv1.HandlerV1InitStruct{
+		Log:            *logs.SetupLogger(cfg.Mode),
+		Config:         cfg,
+		AllowedCmd:     regexp.MustCompile(`^[a-zA-Z0-9]+$`),
+		ListAllowedCmd: regexp.MustCompile(`^[a-zA-Z0-9_-]+$`),
+	})
 	r := chi.NewRouter()
 	r.Route("/v1/com", func(r chi.Router) {
-		r.Get("/", handleV1ComList)
-		r.Get("/{cmd}", handleV1)
+		r.Get("/", serverv1.HandleList)
+		r.Get("/{cmd}", serverv1.Handle)
 	})
 	// r.Route("/v2/com", func(r chi.Router) {
 	// 	r.Get("/", handleV1ComList)
 	// 	r.Get("/{cmd}", handleV1)
 	// })
-	r.NotFound(notFound)
+	r.NotFound(serverv1.ErrNotFound)
 	log.Info("Server started", slog.String("address", cfg.Address))
 	http.ListenAndServe(cfg.Address, r)
 

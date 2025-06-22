@@ -1,4 +1,4 @@
-package v1
+package sv1
 
 import (
 	"crypto/rand"
