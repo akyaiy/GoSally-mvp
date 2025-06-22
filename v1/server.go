@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/akyaiy/GoSally-mvp/internal/config"
+	"github.com/akyaiy/GoSally-mvp/config"
 )
 
 type ServerV1UtilsContract interface {

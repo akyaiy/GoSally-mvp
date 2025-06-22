@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/akyaiy/GoSally-mvp/internal/config"
-	"github.com/akyaiy/GoSally-mvp/internal/logs"
-	"github.com/akyaiy/GoSally-mvp/internal/v1"
+	"github.com/akyaiy/GoSally-mvp/config"
+	"github.com/akyaiy/GoSally-mvp/logs"
+	"github.com/akyaiy/GoSally-mvp/v1"
 
 	"github.com/go-chi/chi/v5"
 )
