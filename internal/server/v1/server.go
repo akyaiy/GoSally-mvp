@@ -1,4 +1,4 @@
-package server_v1
+package v1
 
 import (
 	"log/slog"
@@ -12,7 +12,9 @@ type ServerV1UtilsContract interface {
 	extractDescriptionStatic(path string) (string, error)
 	writeJSONError(status int, msg string)
 	newUUID() string
-	errNotFound()
+
+	_errNotFound()
+	ErrNotFound(w http.ResponseWriter, r *http.Request)
 }
 
 type ServerV1Contract interface {
@@ -35,6 +37,10 @@ type HandlerV1 struct {
 
 	allowedCmd     *regexp.Regexp
 	listAllowedCmd *regexp.Regexp
+}
+
+func InitV1Server(o *HandlerV1) *HandlerV1 {
+	return o
 }
 
 func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {

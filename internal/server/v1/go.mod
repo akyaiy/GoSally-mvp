@@ -1,4 +1,4 @@
-module github.com/akyaiy/GoSally-mvp/internal/server_v1
+module github.com/akyaiy/GoSally-mvp/internal/server/v1
 
 go 1.24.4
 

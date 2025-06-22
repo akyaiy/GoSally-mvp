@@ -1,4 +1,4 @@
-package server_v1
+package v1
 
 import (
 	"crypto/rand"
@@ -10,6 +10,12 @@ import (
 	"regexp"
 )
 
+func (h *HandlerV1) ErrNotFound(w http.ResponseWriter, r *http.Request) {
+	h.w = w
+	h.r = r
+	h._errNotFound()
+}
+
 func (h *HandlerV1) newUUID() string {
 	bytes := make([]byte, 16)
 	_, err := rand.Read(bytes)
@@ -20,7 +26,7 @@ func (h *HandlerV1) newUUID() string {
 	return hex.EncodeToString(bytes)
 }
 
-func (h *HandlerV1) errNotFound() {
+func (h *HandlerV1) _errNotFound() {
 	h.writeJSONError(http.StatusBadRequest, "invalid request")
 	h.log.Error("HTTP request error", slog.String("remote", h.r.RemoteAddr), slog.String("method", h.r.Method), slog.String("url", h.r.URL.String()), slog.Int("status", http.StatusBadRequest))
 }

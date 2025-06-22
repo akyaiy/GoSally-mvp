@@ -7,6 +7,7 @@ import (
 
 	"github.com/akyaiy/GoSally-mvp/internal/config"
 	"github.com/akyaiy/GoSally-mvp/internal/logs"
+	"github.com/akyaiy/GoSally-mvp/internal/server/v1"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -27,15 +28,16 @@ func init() {
 }
 
 func main() {
+
 	r := chi.NewRouter()
 	r.Route("/v1/com", func(r chi.Router) {
 		r.Get("/", handleV1ComList)
 		r.Get("/{cmd}", handleV1)
 	})
-	r.Route("/v2/com", func(r chi.Router) {
-		r.Get("/", handleV1ComList)
-		r.Get("/{cmd}", handleV1)
-	})
+	// r.Route("/v2/com", func(r chi.Router) {
+	// 	r.Get("/", handleV1ComList)
+	// 	r.Get("/{cmd}", handleV1)
+	// })
 	r.NotFound(notFound)
 	log.Info("Server started", slog.String("address", cfg.Address))
 	http.ListenAndServe(cfg.Address, r)
