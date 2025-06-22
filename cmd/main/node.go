@@ -7,7 +7,7 @@ import (
 
 	"github.com/akyaiy/GoSally-mvp/config"
 	"github.com/akyaiy/GoSally-mvp/logs"
-	"github.com/akyaiy/GoSally-mvp/v1"
+	//"github.com/akyaiy/GoSally-mvp/v1"
 
 	"github.com/go-chi/chi/v5"
 )
