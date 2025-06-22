@@ -1,13 +1,12 @@
 package main
 
 import (
-	"github.com/akyaiy/GoSally-mvp/internal/config"
-	"github.com/akyaiy/GoSally-mvp/internal/logs"
-	"crypto/rand"
-	"encoding/hex"
 	"log/slog"
 	"net/http"
 	"regexp"
+
+	"github.com/akyaiy/GoSally-mvp/internal/config"
+	"github.com/akyaiy/GoSally-mvp/internal/logs"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -41,14 +40,4 @@ func main() {
 	log.Info("Server started", slog.String("address", cfg.Address))
 	http.ListenAndServe(cfg.Address, r)
 
-}
-
-func newUUID() string {
-	bytes := make([]byte, 16)
-	_, err := rand.Read(bytes)
-	if err != nil {
-		log.Error("Failed to generate UUID", slog.String("error", err.Error()))
-		return ""
-	}
-	return hex.EncodeToString(bytes)
 }

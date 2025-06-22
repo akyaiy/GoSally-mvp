@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"github.com/akyaiy/GoSally-mvp/internal/config"
+
 	_ "github.com/go-chi/chi/v5"
 )
 
 func (h *HandlerV1) _handleList() {
-	uuid16 := newUUID()
-	_log.Info("Received request", slog.String("version", "v1"), slog.String("connection-uuid", uuid16), slog.String("remote", r.RemoteAddr), slog.String("method", r.Method), slog.String("url", r.URL.String()))
+	uuid16 := h.newUUID()
+	h.log.Info("Received request", slog.String("version", "v1"), slog.String("connection-uuid", uuid16), slog.String("remote", h.r.RemoteAddr), slog.String("method", h.r.Method), slog.String("url", h.r.URL.String()))
 	type ComMeta struct {
 		Description string
 	}
@@ -23,9 +23,9 @@ func (h *HandlerV1) _handleList() {
 		commands = make(map[string]ComMeta)
 	)
 
-	if files, err = os.ReadDir(cfg.ComDir); err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "failed to read commands directory: "+err.Error())
-		_log.Error("Failed to read commands directory", slog.String("error", err.Error()))
+	if files, err = os.ReadDir(h.cfg.ComDir); err != nil {
+		h.writeJSONError(http.StatusInternalServerError, "failed to read commands directory: "+err.Error())
+		h.log.Error("Failed to read commands directory", slog.String("error", err.Error()))
 		return
 	}
 	for _, file := range files {
@@ -33,15 +33,15 @@ func (h *HandlerV1) _handleList() {
 			continue
 		}
 		cmdName := file.Name()[:len(file.Name())-4] // remove .lua extension
-		if !allowedCmd.MatchString(string([]rune(cmdName)[0])) {
+		if !h.allowedCmd.MatchString(string([]rune(cmdName)[0])) {
 			continue
 		}
-		if !listAllowedCmd.MatchString(cmdName) {
+		if !h.listAllowedCmd.MatchString(cmdName) {
 			continue
 		}
-		if com.Description, err = extractDescriptionStatic(filepath.Join(cfg.ComDir, file.Name())); err != nil {
-			writeJSONError(w, http.StatusInternalServerError, "failed to read command: "+err.Error())
-			log.Error("Failed to read command", slog.String("error", err.Error()))
+		if com.Description, err = h.extractDescriptionStatic(filepath.Join(h.cfg.ComDir, file.Name())); err != nil {
+			h.writeJSONError(http.StatusInternalServerError, "failed to read command: "+err.Error())
+			h.log.Error("Failed to read command", slog.String("error", err.Error()))
 			return
 		}
 		if com.Description == "" {
@@ -49,7 +49,7 @@ func (h *HandlerV1) _handleList() {
 		}
 		commands[cmdName] = ComMeta{Description: com.Description}
 	}
-	json.NewEncoder(w).Encode(commands)
-	_log.Info("Command executed successfully", slog.String("connection-uuid", uuid16))
-	_log.Info("Session completed", slog.String("connection-uuid", uuid16), slog.String("remote", r.RemoteAddr), slog.String("method", r.Method), slog.String("url", r.URL.String()))
+	json.NewEncoder(h.w).Encode(commands)
+	h.log.Info("Command executed successfully", slog.String("connection-uuid", uuid16))
+	h.log.Info("Session completed", slog.String("connection-uuid", uuid16), slog.String("remote", h.r.RemoteAddr), slog.String("method", h.r.Method), slog.String("url", h.r.URL.String()))
 }
