@@ -1,3 +1,5 @@
+package.path = "./com/?.lua;" .. package.path
+
 print = function() end
 io.write = function(...) end
 io.stdout = function() return nil end
