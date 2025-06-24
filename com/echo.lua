@@ -1,6 +1,6 @@
---- #description = "Echoes back the message provided in the 'msg' parameter."
-
-local mod = require("_for_echo")
+--- #description = "Echoes back the message."
+--- #args 
+---  msg = the message
 
 if not Params.msg then
     Result.status = "error"
@@ -9,5 +9,5 @@ if not Params.msg then
 end
 
 Result.status = "ok"
-Result.answer = mod.translate(Params.msg)
+Result.answer = Params.msg
 return

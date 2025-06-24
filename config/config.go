@@ -12,6 +12,13 @@ type ConfigConf struct {
 	Mode       string `yaml:"mode" env-default:"dev"`
 	ComDir     string `yaml:"com_dir" env-default:"./com/"`
 	HTTPServer `yaml:"http_server"`
+	TLS        `yaml:"tls"`
+}
+
+type TLS struct {
+	TlsEnabled string `yaml:"enabled" env-default:"false"`
+	CertFile   string `yaml:"cert_file" env-default:"./cert/server.crt"`
+	KeyFile    string `yaml:"key_file" env-default:"./cert/server.key"`
 }
 
 type HTTPServer struct {
@@ -31,6 +38,7 @@ type ConfigEnv struct {
 }
 
 func MustLoadConfig() *ConfigConf {
+	log.SetOutput(os.Stderr)
 	var configEnv ConfigEnv
 	if err := cleanenv.ReadEnv(&configEnv); err != nil {
 		log.Fatalf("Failed to read environment variables: %v", err)

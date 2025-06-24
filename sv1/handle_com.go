@@ -13,18 +13,23 @@ import (
 
 func (h *HandlerV1) _handle() {
 	uuid16 := h.newUUID()
-	h.log.Info("Received request",
-		slog.String("version", "v1"),
-		slog.String("connection-uuid", uuid16),
-		slog.String("remote", h.r.RemoteAddr),
-		slog.String("method", h.r.Method),
-		slog.String("url", h.r.URL.String()))
+	log := h.log.With(
+		slog.Group("request",
+			slog.String("version", "v1"),
+			slog.String("url", h.r.URL.String()),
+			slog.String("method", h.r.Method),
+		),
+		slog.Group("connection",
+			slog.String("connection-uuid", uuid16),
+			slog.String("remote", h.r.RemoteAddr),
+		),
+	)
+	log.Info("Received request")
 
 	cmd := chi.URLParam(h.r, "cmd")
 	var scriptPath string
 	if !h.allowedCmd.MatchString(string([]rune(cmd)[0])) {
-		h.log.Error("HTTP request error",
-			slog.String("connection-uuid", uuid16),
+		log.Error("HTTP request error",
 			slog.String("error", "invalid command"),
 			slog.String("cmd", cmd),
 			slog.Int("status", http.StatusBadRequest))
@@ -32,8 +37,7 @@ func (h *HandlerV1) _handle() {
 		return
 	}
 	if !h.listAllowedCmd.MatchString(cmd) {
-		h.log.Error("HTTP request error",
-			slog.String("connection-uuid", uuid16),
+		log.Error("HTTP request error",
 			slog.String("error", "invalid command"),
 			slog.String("cmd", cmd),
 			slog.Int("status", http.StatusBadRequest))
@@ -41,8 +45,7 @@ func (h *HandlerV1) _handle() {
 		return
 	}
 	if scriptPath = h.comMatch(chi.URLParam(h.r, "ver"), cmd); scriptPath == "" {
-		h.log.Error("HTTP request error",
-			slog.String("connection-uuid", uuid16),
+		log.Error("HTTP request error",
 			slog.String("error", "command not found"),
 			slog.String("cmd", cmd),
 			slog.Int("status", http.StatusNotFound))
@@ -52,8 +55,7 @@ func (h *HandlerV1) _handle() {
 
 	scriptPath = filepath.Join(h.cfg.ComDir, scriptPath)
 	if _, err := os.Stat(scriptPath); err != nil {
-		h.log.Error("HTTP request error",
-			slog.String("connection-uuid", uuid16),
+		log.Error("HTTP request error",
 			slog.String("error", "command not found"),
 			slog.String("cmd", cmd),
 			slog.Int("status", http.StatusNotFound))
@@ -79,19 +81,18 @@ func (h *HandlerV1) _handle() {
 	prepareLuaEnv := filepath.Join(h.cfg.ComDir, "_prepare"+".lua")
 	if _, err := os.Stat(prepareLuaEnv); err == nil {
 		if err := L.DoFile(prepareLuaEnv); err != nil {
-			h.log.Error("Failed to prepare lua environment",
-				slog.String("connection-uuid", uuid16),
+			log.Error("Failed to prepare lua environment",
 				slog.String("error", err.Error()))
 			h.writeJSONError(http.StatusInternalServerError, "lua error: "+err.Error())
 			return
 		}
 	} else {
-		h.log.Error("No environment preparation script found, skipping preparation", slog.String("connection-uuid", uuid16), slog.String("error", err.Error()))
+		log.Error("No environment preparation script found, skipping preparation",
+			slog.String("error", err.Error()))
 	}
 
 	if err := L.DoFile(scriptPath); err != nil {
-		h.log.Error("Failed to execute lua script",
-			slog.String("connection-uuid", uuid16),
+		log.Error("Failed to execute lua script",
 			slog.String("error", err.Error()))
 		h.writeJSONError(http.StatusInternalServerError, "lua error: "+err.Error())
 		return
@@ -117,23 +118,16 @@ func (h *HandlerV1) _handle() {
 	json.NewEncoder(h.w).Encode(out)
 	switch out["status"] {
 	case "error":
-		h.log.Info("Command executed with error",
-			slog.String("connection-uuid", uuid16),
+		log.Info("Command executed with error",
 			slog.String("cmd", cmd),
 			slog.Any("result", out))
 	case "ok":
-		h.log.Info("Command executed successfully",
-			slog.String("connection-uuid", uuid16),
+		log.Info("Command executed successfully",
 			slog.String("cmd", cmd), slog.Any("result", out))
 	default:
-		h.log.Info("Command executed and returned an unknown status",
-			slog.String("connection-uuid", uuid16),
+		log.Info("Command executed and returned an unknown status",
 			slog.String("cmd", cmd),
 			slog.Any("result", out))
 	}
-	h.log.Info("Session completed",
-		slog.String("connection-uuid", uuid16),
-		slog.String("remote", h.r.RemoteAddr),
-		slog.String("method", h.r.Method),
-		slog.String("url", h.r.URL.String()))
+	log.Info("Session completed")
 }

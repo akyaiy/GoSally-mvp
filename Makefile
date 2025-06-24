@@ -1,7 +1,7 @@
 APP_NAME := node
 BIN_DIR := bin
 GOPATH := $(shell go env GOPATH)
-.PHONY: all build run test fmt vet lint check clean
+.PHONY: all build run runq test fmt vet lint check clean
 
 all: build
 
@@ -24,6 +24,9 @@ build:
 
 run: build
 	./$(BIN_DIR)/$(APP_NAME)
+
+runq: build
+	./$(BIN_DIR)/$(APP_NAME) | jq
 
 test:
 	@go test ./... | grep -v '^?' || true

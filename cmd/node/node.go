@@ -39,11 +39,21 @@ func main() {
 		Config: cfg,
 	}, serverv1)
 	r := chi.NewRouter()
-	r.Route("/{ver}/com", func(r chi.Router) {
+	r.Route("/api/{ver}/com", func(r chi.Router) {
 		r.Get("/", s.HandleList)
 		r.Get("/{cmd}", s.Handle)
 	})
 	r.NotFound(serverv1.ErrNotFound)
+	if cfg.TlsEnabled == "true" {
+		log.Info("Server started with TLS", slog.String("address", cfg.Address))
+		err := http.ListenAndServeTLS(cfg.Address, cfg.CertFile, cfg.KeyFile, r)
+		if err != nil {
+			log.Error("Failed to start HTTPS server", slog.String("error", err.Error()))
+		}
+	}
 	log.Info("Server started", slog.String("address", cfg.Address))
-	http.ListenAndServe(cfg.Address, r)
+	err := http.ListenAndServe(cfg.Address, r)
+	if err != nil {
+		log.Error("Failed to start HTTP server", slog.String("error", err.Error()))
+	}
 }

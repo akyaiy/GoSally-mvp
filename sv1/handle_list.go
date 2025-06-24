@@ -13,17 +13,22 @@ import (
 
 func (h *HandlerV1) _handleList() {
 	uuid16 := h.newUUID()
-	h.log.Info("Received request",
-		slog.String("version", "v1"),
-		slog.String("connection-uuid", uuid16),
-		slog.String("remote", h.r.RemoteAddr),
-		slog.String("method", h.r.Method),
-		slog.String("url", h.r.URL.String()))
-
+	log := h.log.With(
+		slog.Group("request",
+			slog.String("version", "v1"),
+			slog.String("url", h.r.URL.String()),
+			slog.String("method", h.r.Method),
+		),
+		slog.Group("connection",
+			slog.String("connection-uuid", uuid16),
+			slog.String("remote", h.r.RemoteAddr),
+		),
+	)
+	log.Info("Received request")
 	type ComMeta struct {
-		Description string
+		Description string            `json:"Description"`
+		Arguments   map[string]string `json:"Arguments,omitempty"`
 	}
-
 	var (
 		files         []os.DirEntry
 		err           error
@@ -32,7 +37,7 @@ func (h *HandlerV1) _handleList() {
 	)
 
 	if files, err = os.ReadDir(h.cfg.ComDir); err != nil {
-		h.log.Error("Failed to read commands directory",
+		log.Error("Failed to read commands directory",
 			slog.String("error", err.Error()))
 		h.writeJSONError(http.StatusInternalServerError, "failed to read commands directory: "+err.Error())
 		return
@@ -94,14 +99,9 @@ func (h *HandlerV1) _handleList() {
 		}
 	}
 
-	h.log.Info("Command list prepared",
-		slog.String("connection-uuid", uuid16))
+	log.Debug("Command list prepared")
 
-	h.log.Info("Session completed",
-		slog.String("connection-uuid", uuid16),
-		slog.String("remote", h.r.RemoteAddr),
-		slog.String("method", h.r.Method),
-		slog.String("url", h.r.URL.String()))
+	log.Info("Session completed")
 
 	h.w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(h.w).Encode(commands)

@@ -10,4 +10,9 @@ http_server:
       - b1
       - s2
 
+tls:
+  enabled: "true"
+  cert_file: "./cert/server.crt"
+  key_file: "./cert/server.key"
+
 com_dir: "com/"
