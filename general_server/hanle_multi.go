@@ -70,13 +70,18 @@ func (s *GeneralServer) Handle(w http.ResponseWriter, r *http.Request) {
 	s.w = w
 	s.r = r
 	serverReqApiVer := chi.URLParam(r, "ver")
-
-	s.log.Info("Received request",
-		slog.String("remote", r.RemoteAddr),
-		slog.String("method", r.Method),
-		slog.String("url", r.URL.String()),
-		slog.String("requested-version", serverReqApiVer),
+	log := s.log.With(
+		slog.Group("request",
+			slog.String("version", serverReqApiVer),
+			slog.String("url", s.r.URL.String()),
+			slog.String("method", s.r.Method),
+		),
+		slog.Group("connection",
+			slog.String("remote", s.r.RemoteAddr),
+		),
 	)
+
+	s.log.Info("Received request")
 
 	if srv, ok := s.servers[serversApiVer(serverReqApiVer)]; ok {
 		srv.Handle(w, r)
@@ -94,10 +99,7 @@ func (s *GeneralServer) Handle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	s.log.Error("HTTP request error: unsupported API version",
-		slog.String("remote", s.r.RemoteAddr),
-		slog.String("method", s.r.Method),
-		slog.String("url", s.r.URL.String()),
+	log.Error("HTTP request error: unsupported API version",
 		slog.Int("status", http.StatusBadRequest))
 	s.writeJSONError(http.StatusBadRequest, "unsupported API version")
 }
@@ -107,12 +109,18 @@ func (s *GeneralServer) HandleList(w http.ResponseWriter, r *http.Request) {
 	s.r = r
 	serverReqApiVer := chi.URLParam(r, "ver")
 
-	s.log.Info("Received request",
-		slog.String("remote", r.RemoteAddr),
-		slog.String("method", r.Method),
-		slog.String("url", r.URL.String()),
-		slog.String("requested-version", serverReqApiVer),
+	log := s.log.With(
+		slog.Group("request",
+			slog.String("version", serverReqApiVer),
+			slog.String("url", s.r.URL.String()),
+			slog.String("method", s.r.Method),
+		),
+		slog.Group("connection",
+			slog.String("remote", s.r.RemoteAddr),
+		),
 	)
+
+	log.Info("Received request")
 
 	if srv, ok := s.servers[serversApiVer(serverReqApiVer)]; ok {
 		srv.HandleList(w, r)
@@ -121,7 +129,7 @@ func (s *GeneralServer) HandleList(w http.ResponseWriter, r *http.Request) {
 
 	if slices.Contains(s.cfg.Layers, serverReqApiVer) {
 		if srv, ok := s.servers[serversApiVer(s.cfg.LatestVer)]; ok {
-			s.log.Info("Using latest version under custom layer",
+			log.Info("Using latest version under custom layer",
 				slog.String("layer", serverReqApiVer),
 				slog.String("fallback-version", s.cfg.LatestVer),
 			)
@@ -130,22 +138,19 @@ func (s *GeneralServer) HandleList(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	s.log.Error("HTTP request error: unsupported API version",
-		slog.String("remote", s.r.RemoteAddr),
-		slog.String("method", s.r.Method),
-		slog.String("url", s.r.URL.String()),
+	log.Error("HTTP request error: unsupported API version",
 		slog.Int("status", http.StatusBadRequest))
 	s.writeJSONError(http.StatusBadRequest, "unsupported API version")
 }
 
-func (s *GeneralServer) _errNotFound() {
-	s.writeJSONError(http.StatusBadRequest, "invalid request")
-	s.log.Error("HTTP request error",
-		slog.String("remote", s.r.RemoteAddr),
-		slog.String("method", s.r.Method),
-		slog.String("url", s.r.URL.String()),
-		slog.Int("status", http.StatusBadRequest))
-}
+// func (s *GeneralServer) _errNotFound() {
+// 	s.writeJSONError(http.StatusBadRequest, "invalid request")
+// 	s.log.Error("HTTP request error",
+// 		slog.String("remote", s.r.RemoteAddr),
+// 		slog.String("method", s.r.Method),
+// 		slog.String("url", s.r.URL.String()),
+// 		slog.Int("status", http.StatusBadRequest))
+// }
 
 func (s *GeneralServer) writeJSONError(status int, msg string) {
 	s.w.Header().Set("Content-Type", "application/json")

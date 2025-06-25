@@ -15,7 +15,7 @@ func (h *HandlerV1) _handleList() {
 	uuid16 := h.newUUID()
 	log := h.log.With(
 		slog.Group("request",
-			slog.String("version", "v1"),
+			slog.String("version", h.GetVersion()),
 			slog.String("url", h.r.URL.String()),
 			slog.String("method", h.r.Method),
 		),
