@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"slices"
 
-	"github.com/akyaiy/GoSally-mvp/config"
+	"github.com/akyaiy/GoSally-mvp/core/config"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -81,7 +81,7 @@ func (s *GeneralServer) Handle(w http.ResponseWriter, r *http.Request) {
 		),
 	)
 
-	s.log.Info("Received request")
+	s.log.Debug("Received request")
 
 	if srv, ok := s.servers[serversApiVer(serverReqApiVer)]; ok {
 		srv.Handle(w, r)
@@ -90,7 +90,7 @@ func (s *GeneralServer) Handle(w http.ResponseWriter, r *http.Request) {
 
 	if slices.Contains(s.cfg.Layers, serverReqApiVer) {
 		if srv, ok := s.servers[serversApiVer(s.cfg.LatestVer)]; ok {
-			s.log.Info("Using latest version under custom layer",
+			s.log.Debug("Using latest version under custom layer",
 				slog.String("layer", serverReqApiVer),
 				slog.String("fallback-version", s.cfg.LatestVer),
 			)
@@ -120,7 +120,7 @@ func (s *GeneralServer) HandleList(w http.ResponseWriter, r *http.Request) {
 		),
 	)
 
-	log.Info("Received request")
+	log.Debug("Received request")
 
 	if srv, ok := s.servers[serversApiVer(serverReqApiVer)]; ok {
 		srv.HandleList(w, r)
@@ -129,7 +129,7 @@ func (s *GeneralServer) HandleList(w http.ResponseWriter, r *http.Request) {
 
 	if slices.Contains(s.cfg.Layers, serverReqApiVer) {
 		if srv, ok := s.servers[serversApiVer(s.cfg.LatestVer)]; ok {
-			log.Info("Using latest version under custom layer",
+			log.Debug("Using latest version under custom layer",
 				slog.String("layer", serverReqApiVer),
 				slog.String("fallback-version", s.cfg.LatestVer),
 			)

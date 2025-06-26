@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/akyaiy/GoSally-mvp/config"
-	gs "github.com/akyaiy/GoSally-mvp/general_server"
-	"github.com/akyaiy/GoSally-mvp/logs"
-	"github.com/akyaiy/GoSally-mvp/sv1"
+	"github.com/akyaiy/GoSally-mvp/core/config"
+	gs "github.com/akyaiy/GoSally-mvp/core/general_server"
+	"github.com/akyaiy/GoSally-mvp/core/logs"
+	"github.com/akyaiy/GoSally-mvp/core/sv1"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -38,6 +38,7 @@ func main() {
 		Log:    *logs.SetupLogger(cfg.Mode),
 		Config: cfg,
 	}, serverv1)
+
 	r := chi.NewRouter()
 	r.Route("/api/{ver}/com", func(r chi.Router) {
 		r.Get("/", s.HandleList)

@@ -1,6 +1,9 @@
 APP_NAME := node
 BIN_DIR := bin
 GOPATH := $(shell go env GOPATH)
+export CONFIG_PATH := ./config.yaml
+CGO_CFLAGS := -I/usr/local/include
+CGO_LDFLAGS := -L/usr/local/lib -llua5.1 -lm -ldl
 .PHONY: all build run runq test fmt vet lint check clean
 
 all: build
@@ -20,12 +23,17 @@ setup: lint-setup goimports-setup golicenses-setup
 	@echo "Setup complete. Run 'make build' to compile the application."
 
 build:
-	@go build -o $(BIN_DIR)/$(APP_NAME) ./cmd/$(APP_NAME)
+	@echo "Building..."
+	@echo "CGO_CFLAGS is: '$(CGO_CFLAGS)'"
+	@echo "CGO_LDFLAGS is: '$(CGO_LDFLAGS)'"
+	CGO_CFLAGS="$(CGO_CFLAGS)" CGO_LDFLAGS="$(CGO_LDFLAGS)" go build -o $(BIN_DIR)/$(APP_NAME) ./cmd/$(APP_NAME)
 
 run: build
+	@echo "Running!"
 	./$(BIN_DIR)/$(APP_NAME)
 
 runq: build
+	@echo "Running!"
 	./$(BIN_DIR)/$(APP_NAME) | jq
 
 test:
