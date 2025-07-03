@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+
+	"github.com/akyaiy/GoSally-mvp/core/config"
 )
 
 func (h *HandlerV1) ErrNotFound(w http.ResponseWriter, r *http.Request) {
@@ -17,7 +19,7 @@ func (h *HandlerV1) ErrNotFound(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HandlerV1) newUUID() string {
-	bytes := make([]byte, 16)
+	bytes := make([]byte, int(config.GetInternalConsts().GetUUIDLength()/2))
 	_, err := rand.Read(bytes)
 	if err != nil {
 		h.log.Error("Failed to generate UUID", slog.String("error", err.Error()))
@@ -43,7 +45,12 @@ func (h *HandlerV1) writeJSONError(status int, msg string) {
 		"error":  msg,
 		"code":   status,
 	}
-	json.NewEncoder(h.w).Encode(resp)
+	if err := json.NewEncoder(h.w).Encode(resp); err != nil {
+		h.log.Error("Failed to write JSON error response",
+			slog.String("error", err.Error()),
+			slog.Int("status", status))
+		return
+	}
 }
 
 func (h *HandlerV1) extractDescriptionStatic(path string) (string, error) {

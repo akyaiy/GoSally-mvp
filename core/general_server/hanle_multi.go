@@ -160,5 +160,10 @@ func (s *GeneralServer) writeJSONError(status int, msg string) {
 		"error":  msg,
 		"code":   status,
 	}
-	json.NewEncoder(s.w).Encode(resp)
+	if err := json.NewEncoder(s.w).Encode(resp); err != nil {
+		s.log.Error("Failed to write JSON error response",
+			slog.String("error", err.Error()),
+			slog.Int("status", status))
+		return
+	}
 }

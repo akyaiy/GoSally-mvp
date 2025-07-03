@@ -1,7 +1,11 @@
 ---@alias AnyTable table<string, any>
 
 ---@type AnyTable
-Params = {}
+In = {
+	Params = {},
+}
 
 ---@type AnyTable
-Result = {}
+Out = {
+	Result = {},
+}

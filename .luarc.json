@@ -2,6 +2,5 @@
   "runtime.version": "Lua 5.1",
   "workspace.library": [
     "./scripts/_globals.lua"
-  ],
-  "diagnostics.globals": ["Params", "Result"]
+  ]
 }

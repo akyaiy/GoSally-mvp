@@ -13,10 +13,26 @@ type ConfigConf struct {
 	ComDir     string `yaml:"com_dir" env-default:"./com/"`
 	HTTPServer `yaml:"http_server"`
 	TLS        `yaml:"tls"`
+	Internal   `yaml:"internal"`
+	Updates    `yaml:"updates"`
+}
+
+type Updates struct {
+	UpdatesEnabled   bool          `yaml:"enabled" env-default:"false"`
+	AllowAutoUpdates bool          `yaml:"allow_auto_updates" env-default:"false"`
+	AllowUpdates     bool          `yaml:"allow_updates" env-default:"false"`
+	AllowDowngrades  bool          `yaml:"allow_downgrades" env-default:"false"`
+	CheckInterval    time.Duration `yaml:"check_interval" env-default:"2h"`
+	RepositoryURL    string        `yaml:"repository_url" env-default:""`
+	WantedVersion    string        `yaml:"wanted_version" env-default:"latest-stable"`
+}
+
+type Internal struct {
+	MetaDir string `yaml:"meta_dir" env-default:"./.meta/"`
 }
 
 type TLS struct {
-	TlsEnabled string `yaml:"enabled" env-default:"false"`
+	TlsEnabled bool   `yaml:"enabled" env-default:"false"`
 	CertFile   string `yaml:"cert_file" env-default:"./cert/server.crt"`
 	KeyFile    string `yaml:"key_file" env-default:"./cert/server.key"`
 }

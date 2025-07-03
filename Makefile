@@ -2,6 +2,7 @@ APP_NAME := node
 BIN_DIR := bin
 GOPATH := $(shell go env GOPATH)
 export CONFIG_PATH := ./config.yaml
+LDFLAGS := -X 'github.com/akyaiy/GoSally-mvp/core/config.NodeVersion=version0.0.1-dev'
 CGO_CFLAGS := -I/usr/local/include
 CGO_LDFLAGS := -L/usr/local/lib -llua5.1 -lm -ldl
 .PHONY: all build run runq test fmt vet lint check clean
@@ -24,9 +25,10 @@ setup: lint-setup goimports-setup golicenses-setup
 
 build:
 	@echo "Building..."
-	@echo "CGO_CFLAGS is: '$(CGO_CFLAGS)'"
-	@echo "CGO_LDFLAGS is: '$(CGO_LDFLAGS)'"
-	CGO_CFLAGS="$(CGO_CFLAGS)" CGO_LDFLAGS="$(CGO_LDFLAGS)" go build -o $(BIN_DIR)/$(APP_NAME) ./cmd/$(APP_NAME)
+	@# @echo "CGO_CFLAGS is: '$(CGO_CFLAGS)'"
+	@# @echo "CGO_LDFLAGS is: '$(CGO_LDFLAGS)'"
+	@# CGO_CFLAGS="$(CGO_CFLAGS)" CGO_LDFLAGS="$(CGO_LDFLAGS)" 
+	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(APP_NAME) ./cmd/$(APP_NAME)
 
 run: build
 	@echo "Running!"
@@ -57,3 +59,6 @@ licenses:
 
 clean:
 	@rm -rf bin
+
+help:
+	@echo "Available commands: $$(cat Makefile | grep -E '^[a-zA-Z_-]+:.*?' | grep -v -- '-setup:' | sed 's/:.*//g' | sort | uniq | tr '\n' ' ')"

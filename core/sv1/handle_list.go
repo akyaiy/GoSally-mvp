@@ -104,5 +104,8 @@ func (h *HandlerV1) _handleList() {
 	log.Info("Session completed")
 
 	h.w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(h.w).Encode(commands)
+	if err := json.NewEncoder(h.w).Encode(commands); err != nil {
+		h.log.Error("Failed to write JSON error response",
+			slog.String("error", err.Error()))
+	}
 }
