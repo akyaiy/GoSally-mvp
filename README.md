@@ -13,12 +13,14 @@ The basic directory tree looks something like this
 ├── bin
 │   └── node			Node core binary file
 ├── com
-│   ├── echo.lua		
-│   ├── _globals.lua	Declaring global variables and functions for all internal scripts (also required for luarc to work correctly)
-│   └── _prepare.lua	Script that is executed before each script launch
+│   ├── echo.lua
+│   ├── _globals.lua	Declaring global variables and functions for all internal scripts (also required for luarc to work correctly)
+│   └── _prepare.lua	Script that is executed before each script launch
+├── config.yaml
 └── Makefile
 
-3 directories, 4 files
+3 directories, 6 files
+
 ```
 Launch by command 
 ```bash
