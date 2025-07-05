@@ -1,3 +1,5 @@
+// Package config provides configuration management for the application.
+// config is built on top of the third-party module cleanenv
 package config
 
 import (
@@ -8,6 +10,7 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
+// ConfigConf basic structure of configs
 type ConfigConf struct {
 	Mode       string `yaml:"mode" env-default:"dev"`
 	ComDir     string `yaml:"com_dir" env-default:"./com/"`
@@ -15,26 +18,6 @@ type ConfigConf struct {
 	TLS        `yaml:"tls"`
 	Internal   `yaml:"internal"`
 	Updates    `yaml:"updates"`
-}
-
-type Updates struct {
-	UpdatesEnabled   bool          `yaml:"enabled" env-default:"false"`
-	AllowAutoUpdates bool          `yaml:"allow_auto_updates" env-default:"false"`
-	AllowUpdates     bool          `yaml:"allow_updates" env-default:"false"`
-	AllowDowngrades  bool          `yaml:"allow_downgrades" env-default:"false"`
-	CheckInterval    time.Duration `yaml:"check_interval" env-default:"2h"`
-	RepositoryURL    string        `yaml:"repository_url" env-default:""`
-	WantedVersion    string        `yaml:"wanted_version" env-default:"latest-stable"`
-}
-
-type Internal struct {
-	MetaDir string `yaml:"meta_dir" env-default:"./.meta/"`
-}
-
-type TLS struct {
-	TlsEnabled bool   `yaml:"enabled" env-default:"false"`
-	CertFile   string `yaml:"cert_file" env-default:"./cert/server.crt"`
-	KeyFile    string `yaml:"key_file" env-default:"./cert/server.key"`
 }
 
 type HTTPServer struct {
@@ -49,10 +32,33 @@ type HTTPServer_Api struct {
 	Layers    []string `yaml:"layers"`
 }
 
+type TLS struct {
+	TlsEnabled bool   `yaml:"enabled" env-default:"false"`
+	CertFile   string `yaml:"cert_file" env-default:"./cert/server.crt"`
+	KeyFile    string `yaml:"key_file" env-default:"./cert/server.key"`
+}
+
+type Internal struct {
+	MetaDir string `yaml:"meta_dir" env-default:"./.meta/"`
+}
+
+type Updates struct {
+	UpdatesEnabled   bool          `yaml:"enabled" env-default:"false"`
+	AllowAutoUpdates bool          `yaml:"allow_auto_updates" env-default:"false"`
+	AllowUpdates     bool          `yaml:"allow_updates" env-default:"false"`
+	AllowDowngrades  bool          `yaml:"allow_downgrades" env-default:"false"`
+	CheckInterval    time.Duration `yaml:"check_interval" env-default:"2h"`
+	RepositoryURL    string        `yaml:"repository_url" env-default:""`
+	WantedVersion    string        `yaml:"wanted_version" env-default:"latest-stable"`
+}
+
+// ConfigEnv structure for environment variables
 type ConfigEnv struct {
 	ConfigPath string `env:"CONFIG_PATH" env-default:"./cfg/config.yaml"`
 }
 
+// MustLoadConfig loads the configuration from the specified path and environment variables.
+// Program will shutdown if any error occurs during loading.
 func MustLoadConfig() *ConfigConf {
 	log.SetOutput(os.Stderr)
 	var configEnv ConfigEnv
