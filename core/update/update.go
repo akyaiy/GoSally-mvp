@@ -1,10 +1,15 @@
 package update
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"errors"
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -187,13 +192,131 @@ func (u *Updater) CkeckUpdates() (IsNewUpdate, error) {
 	if currentVersion == latestVersion && currentBranch == latestBranch {
 		return false, nil
 	}
-	u.Log.Info("New update available",
-		slog.String("current_version", string(currentVersion)),
-		slog.String("current_branch", string(currentBranch)),
-		slog.String("latest_version", string(latestVersion)),
-		slog.String("latest_branch", string(latestBranch)),
-	)
 	return true, nil
+}
+
+func (u *Updater) Update() error {
+	if !(u.Config.UpdatesEnabled) {
+		return errors.New("updates are disabled in config, skipping update")
+	}
+	downloadPath, err := os.MkdirTemp("", "*-gs-up")
+	if err != nil {
+		return errors.New("failed to create temp dir " + err.Error())
+	}
+	//defer os.RemoveAll(downloadPath)
+	_, currentBranch, err := u.GetCurrentVersion()
+	if err != nil {
+		return errors.New("failed to get current version: " + err.Error())
+	}
+	latestVersion, latestBranch, err := u.GetLatestVersion(currentBranch)
+	if err != nil {
+		return errors.New("failed to get latest version: " + err.Error())
+	}
+	updateArchiveName := config.GetUpdateConsts().GetUpdateArchiveName() + ".v" + string(latestVersion) + "-" + string(latestBranch)
+	updateDest := u.Config.Updates.RepositoryURL + "/" + updateArchiveName + ".tar.gz"
+	resp, err := http.Get(updateDest)
+	if err != nil {
+		return errors.New("failed to fetch latest version archive: " + err.Error())
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return errors.New("failed to fetch latest version archive: status " + resp.Status + ", body: " + string(body))
+	}
+	gzReader, err := gzip.NewReader(resp.Body)
+	if err != nil {
+		return errors.New("failed to create gzip reader: " + err.Error())
+	}
+	defer gzReader.Close()
+	tarReader := tar.NewReader(gzReader)
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break // archive is fully read
+		}
+		if err != nil {
+			return errors.New("failed to read tar header: " + err.Error())
+		}
+
+		targetPath := filepath.Join(downloadPath, header.Name)
+
+		switch header.Typeflag {
+		case tar.TypeDir:
+			// Создаём директорию
+			if err := os.MkdirAll(targetPath, os.FileMode(header.Mode)); err != nil {
+				return errors.New("failed to create directory: " + err.Error())
+			}
+		case tar.TypeReg:
+			// Создаём директорию, если её ещё нет
+			if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
+				return errors.New("failed to create directory for file: " + err.Error())
+			}
+			// Создаём файл
+			outFile, err := os.Create(targetPath)
+			if err != nil {
+				return errors.New("failed to create file: " + err.Error())
+			}
+			// Копируем содержимое
+			if _, err := io.Copy(outFile, tarReader); err != nil {
+				outFile.Close()
+				return errors.New("failed to copy file content: " + err.Error())
+			}
+			outFile.Close()
+		default:
+			return errors.New("unsupported tar entry type: " + string(header.Typeflag))
+		}
+	}
+	return u.InstallAndRestart(filepath.Join(downloadPath, updateArchiveName, "node"))
+}
+
+func (u *Updater) InstallAndRestart(newBinaryPath string) error {
+	nodePath := os.Getenv("NODE_PATH")
+	if nodePath == "" {
+		return errors.New("NODE_PATH environment variable is not set")
+	}
+	installDir := filepath.Join(nodePath, "bin")
+	targetPath := filepath.Join(installDir, "node")
+
+	// Копируем новый бинарник
+	input, err := os.Open(newBinaryPath)
+	if err != nil {
+		return err
+	}
+
+	output, err := os.Create(targetPath)
+	if err != nil {
+		return err
+	}
+	
+
+	if _, err := io.Copy(output, input); err != nil {
+		return err
+	}
+
+	if err := os.Chmod(targetPath, 0755); err != nil {
+		return errors.New("failed to chmod file: " + err.Error())
+	}
+
+	input.Close()
+	output.Close()
+	// Запускаем новый процесс
+	u.Log.Info("Launching new version...", slog.String("path", targetPath))
+	cmd := exec.Command(targetPath, os.Args[1:]...)
+	cmd.Env = os.Environ()
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	err = nil
+	if err = cmd.Start(); err != nil {
+		return err
+	}
+	// if err := syscall.Exec(targetPath, os.Args, os.Environ()); err != nil {
+	// 	u.Log.Error("Failed to run new version automatickly", slog.String("err", err.Error()))
+	// 	return err
+	// }
+	u.Log.Info("Shutting down")
+	os.Exit(0)
+	return errors.New("failed to shutdown the process")
 }
 
 // func (u *Updater) Update() error {

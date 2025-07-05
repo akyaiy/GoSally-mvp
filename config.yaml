@@ -1,7 +1,7 @@
 mode: "dev"
 
 http_server:
-  address: "0.0.0.0:8080"
+  address: "192.168.1.176:8080"
   timeout: 3s
   idle_timeout: 30s
   api:
@@ -23,10 +23,5 @@ com_dir: "com/"
 
 updates:
   enabled: true
-  allow-auto-updates: true
-  allow-updates: true
-  allow-downgrades: false
-
   check-interval: 1h
   repository_url: "https://repo.serve.lv/raw/go-sally"
-  wanted-version: "latest-stable"

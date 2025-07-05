@@ -18,18 +18,18 @@ func (h *HandlerV1) HandleList(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.log.Error("Failed to generate UUID",
 			slog.String("error", err.Error()))
-		utils.WriteJSONError(h.w, http.StatusInternalServerError, "failed to generate UUID: "+err.Error())
+		utils.WriteJSONError(w, http.StatusInternalServerError, "failed to generate UUID: "+err.Error())
 		return
 	}
 	log := h.log.With(
 		slog.Group("request",
 			slog.String("version", h.GetVersion()),
-			slog.String("url", h.r.URL.String()),
-			slog.String("method", h.r.Method),
+			slog.String("url", r.URL.String()),
+			slog.String("method", r.Method),
 		),
 		slog.Group("connection",
 			slog.String("connection-uuid", uuid16),
-			slog.String("remote", h.r.RemoteAddr),
+			slog.String("remote", r.RemoteAddr),
 		),
 	)
 	log.Info("Received request")
@@ -46,11 +46,11 @@ func (h *HandlerV1) HandleList(w http.ResponseWriter, r *http.Request) {
 	if files, err = os.ReadDir(h.cfg.ComDir); err != nil {
 		log.Error("Failed to read commands directory",
 			slog.String("error", err.Error()))
-		utils.WriteJSONError(h.w, http.StatusInternalServerError, "failed to read commands directory: "+err.Error())
+		utils.WriteJSONError(w, http.StatusInternalServerError, "failed to read commands directory: "+err.Error())
 		return
 	}
 
-	apiVer := chi.URLParam(h.r, "ver")
+	apiVer := chi.URLParam(r, "ver")
 
 	// Сначала ищем версионные
 	for _, file := range files {
@@ -110,8 +110,8 @@ func (h *HandlerV1) HandleList(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("Session completed")
 
-	h.w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(h.w).Encode(commands); err != nil {
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(commands); err != nil {
 		h.log.Error("Failed to write JSON error response",
 			slog.String("error", err.Error()))
 	}

@@ -1,19 +1,21 @@
 package main
 
 import (
-	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
 	"regexp"
+	"time"
 
 	"golang.org/x/net/netutil"
 
 	"github.com/akyaiy/GoSally-mvp/core/config"
 	gs "github.com/akyaiy/GoSally-mvp/core/general_server"
+	_ "github.com/akyaiy/GoSally-mvp/core/init"
 	"github.com/akyaiy/GoSally-mvp/core/logs"
 	"github.com/akyaiy/GoSally-mvp/core/sv1"
 	"github.com/akyaiy/GoSally-mvp/core/update"
+	"github.com/go-chi/cors"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -27,20 +29,37 @@ func init() {
 	log = logs.SetupLogger(cfg.Mode)
 	log = log.With("mode", cfg.Mode)
 
-	log.Info("Initializing server", slog.String("address", cfg.HTTPServer.Address))
+	currentV, currentB, _ := update.NewUpdater(*log, cfg).GetCurrentVersion()
+
+	log.Info("Initializing server", slog.String("address", cfg.HTTPServer.Address), slog.String("version", string(currentV)+"-"+string(currentB)))
 	log.Debug("Server running in debug mode")
+}
+
+func UpdateDaemon(u *update.Updater, cfg config.ConfigConf) {
+	for {
+		isNewUpdate, err := u.CkeckUpdates()
+		if err != nil {
+			log.Error("Failed to check for updates", slog.String("error", err.Error()))
+		}
+		if isNewUpdate {
+			log.Info("New update available, starting update process...")
+			err = u.Update()
+			if err != nil {
+				log.Error("Failed to update", slog.String("error", err.Error()))
+			} else {
+				log.Info("Update completed successfully")
+			}
+		} else {
+			log.Info("No new updates available")
+		}
+		time.Sleep(cfg.CheckInterval)
+	}
 }
 
 func main() {
 	updater := update.NewUpdater(*log, cfg)
-	versuion, versionType, _ := updater.GetCurrentVersion()
-	fmt.Printf("Current version: %s (%s)\n", versuion, versionType)
-	ver, vert, _ := updater.GetLatestVersion(versionType)
-	fmt.Printf("Latest version: %s (%s)\n", ver, vert)
+	go UpdateDaemon(updater, *cfg)
 
-	fmt.Println("Checking for updates...")
-	isNewUpdate, _ := updater.CkeckUpdates()
-	fmt.Println("Update check result:", isNewUpdate)
 	serverv1 := sv1.InitV1Server(&sv1.HandlerV1InitStruct{
 		Log:            *log,
 		Config:         cfg,
@@ -54,6 +73,13 @@ func main() {
 	}, serverv1)
 
 	r := chi.NewRouter()
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
 	r.Route(config.GetServerConsts().GetApiRoute()+config.GetServerConsts().GetComDirRoute(), func(r chi.Router) {
 		r.Get("/", s.HandleList)
 		r.Get("/{cmd}", s.Handle)

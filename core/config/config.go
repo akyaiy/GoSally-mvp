@@ -43,18 +43,16 @@ type Internal struct {
 }
 
 type Updates struct {
-	UpdatesEnabled   bool          `yaml:"enabled" env-default:"false"`
-	AllowAutoUpdates bool          `yaml:"allow_auto_updates" env-default:"false"`
-	AllowUpdates     bool          `yaml:"allow_updates" env-default:"false"`
-	AllowDowngrades  bool          `yaml:"allow_downgrades" env-default:"false"`
-	CheckInterval    time.Duration `yaml:"check_interval" env-default:"2h"`
-	RepositoryURL    string        `yaml:"repository_url" env-default:""`
-	WantedVersion    string        `yaml:"wanted_version" env-default:"latest-stable"`
+	UpdatesEnabled bool          `yaml:"enabled" env-default:"false"`
+	CheckInterval  time.Duration `yaml:"check_interval" env-default:"2h"`
+	RepositoryURL  string        `yaml:"repository_url" env-default:""`
+	WantedVersion  string        `yaml:"wanted_version" env-default:"latest-stable"`
 }
 
 // ConfigEnv structure for environment variables
 type ConfigEnv struct {
 	ConfigPath string `env:"CONFIG_PATH" env-default:"./cfg/config.yaml"`
+	NodePath   string `env:"NODE_PATH" env-default:"./"`
 }
 
 // MustLoadConfig loads the configuration from the specified path and environment variables.

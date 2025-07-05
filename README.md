@@ -4,7 +4,7 @@
 System that allows you to build your own infrastructure based on identical nodes and various scripts written using built-in Lua 5.1, shebang scripts (scripts that start with the `#!` symbols), compiled binaries.
 
 ### Features
-Go Sally is not viable at the moment, but it already has the ability to run embedded scripts, log slog events to stdout, and handle RPC like requests.
+Go Sally is not viable at the moment, but it already has the ability to run embedded scripts, log slog events to stdout, handle RPC like requests, and independent automatic update from the repository (my pride, to be honest).
 
 ### Example of use
 The basic directory tree looks something like this

@@ -2,6 +2,8 @@ APP_NAME := node
 BIN_DIR := bin
 GOPATH := $(shell go env GOPATH)
 export CONFIG_PATH := ./config.yaml
+export NODE_PATH := $(shell pwd)
+
 LDFLAGS := -X 'github.com/akyaiy/GoSally-mvp/core/config.NodeVersion=v0.0.1-dev'
 CGO_CFLAGS := -I/usr/local/include
 CGO_LDFLAGS := -L/usr/local/lib -llua5.1 -lm -ldl
@@ -35,6 +37,10 @@ run: build
 	./$(BIN_DIR)/$(APP_NAME)
 
 runq: build
+	@echo "Running!"
+	./$(BIN_DIR)/$(APP_NAME) | jq
+
+pure-run:
 	@echo "Running!"
 	./$(BIN_DIR)/$(APP_NAME) | jq
 

@@ -4,7 +4,6 @@ package sv1
 
 import (
 	"log/slog"
-	"net/http"
 	"regexp"
 
 	"github.com/akyaiy/GoSally-mvp/core/config"
@@ -21,9 +20,6 @@ type HandlerV1InitStruct struct {
 
 // HandlerV1 implements the ServerV1UtilsContract and serves as the main handler for API requests.
 type HandlerV1 struct {
-	w http.ResponseWriter
-	r *http.Request
-
 	log slog.Logger
 
 	cfg *config.ConfigConf

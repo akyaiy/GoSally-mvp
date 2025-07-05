@@ -13,46 +13,46 @@ import (
 )
 
 // HandlerV1 is the main handler for version 1 of the API.
-// The function processes the HTTP request and runs Lua scripts, 
+// The function processes the HTTP request and runs Lua scripts,
 // preparing the environment and subsequently transmitting the execution result
 func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {
 	uuid16, err := utils.NewUUID()
 	if err != nil {
 		h.log.Error("Failed to generate UUID",
 			slog.String("error", err.Error()))
-		utils.WriteJSONError(h.w, http.StatusInternalServerError, "failed to generate UUID: "+err.Error())
+		utils.WriteJSONError(w, http.StatusInternalServerError, "failed to generate UUID: "+err.Error())
 		return
 	}
 	log := h.log.With(
 		slog.Group("request",
 			slog.String("version", h.GetVersion()),
-			slog.String("url", h.r.URL.String()),
-			slog.String("method", h.r.Method),
+			slog.String("url", r.URL.String()),
+			slog.String("method", r.Method),
 		),
 		slog.Group("connection",
 			slog.String("connection-uuid", uuid16),
-			slog.String("remote", h.r.RemoteAddr),
+			slog.String("remote", r.RemoteAddr),
 		),
 	)
 	log.Info("Received request")
 
-	cmd := chi.URLParam(h.r, "cmd")
+	cmd := chi.URLParam(r, "cmd")
 	if !h.allowedCmd.MatchString(string([]rune(cmd)[0])) || !h.listAllowedCmd.MatchString(cmd) {
 		log.Error("HTTP request error",
 			slog.String("error", "invalid command"),
 			slog.String("cmd", cmd),
 			slog.Int("status", http.StatusBadRequest))
-		utils.WriteJSONError(h.w, http.StatusBadRequest, "invalid command")
+		utils.WriteJSONError(w, http.StatusBadRequest, "invalid command")
 		return
 	}
 
-	scriptPath := h.comMatch(chi.URLParam(h.r, "ver"), cmd)
+	scriptPath := h.comMatch(chi.URLParam(r, "ver"), cmd)
 	if scriptPath == "" {
 		log.Error("HTTP request error",
 			slog.String("error", "command not found"),
 			slog.String("cmd", cmd),
 			slog.Int("status", http.StatusNotFound))
-		utils.WriteJSONError(h.w, http.StatusNotFound, "command not found")
+		utils.WriteJSONError(w, http.StatusNotFound, "command not found")
 		return
 	}
 
@@ -62,7 +62,7 @@ func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {
 			slog.String("error", "command not found"),
 			slog.String("cmd", cmd),
 			slog.Int("status", http.StatusNotFound))
-		utils.WriteJSONError(h.w, http.StatusNotFound, "command not found")
+		utils.WriteJSONError(w, http.StatusNotFound, "command not found")
 		return
 	}
 
@@ -70,7 +70,7 @@ func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {
 	defer L.Close()
 
 	paramsTable := L.NewTable()
-	qt := h.r.URL.Query()
+	qt := r.URL.Query()
 	for k, v := range qt {
 		if len(v) > 0 {
 			L.SetField(paramsTable, k, lua.LString(v[0]))
@@ -91,7 +91,7 @@ func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {
 		if err := L.DoFile(prepareLuaEnv); err != nil {
 			log.Error("Failed to prepare lua environment",
 				slog.String("error", err.Error()))
-			utils.WriteJSONError(h.w, http.StatusInternalServerError, "lua error: "+err.Error())
+			utils.WriteJSONError(w, http.StatusInternalServerError, "lua error: "+err.Error())
 			return
 		}
 	} else {
@@ -101,7 +101,7 @@ func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {
 	if err := L.DoFile(scriptPath); err != nil {
 		log.Error("Failed to execute lua script",
 			slog.String("error", err.Error()))
-		utils.WriteJSONError(h.w, http.StatusInternalServerError, "lua error: "+err.Error())
+		utils.WriteJSONError(w, http.StatusInternalServerError, "lua error: "+err.Error())
 		return
 	}
 
@@ -109,7 +109,7 @@ func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {
 	tbl, ok := lv.(*lua.LTable)
 	if !ok {
 		log.Error("Lua global 'Out' is not a table")
-		utils.WriteJSONError(h.w, http.StatusInternalServerError, "'Out' is not a table")
+		utils.WriteJSONError(w, http.StatusInternalServerError, "'Out' is not a table")
 		return
 	}
 
@@ -117,7 +117,7 @@ func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {
 	resultTbl, ok := resultVal.(*lua.LTable)
 	if !ok {
 		log.Error("Lua global 'Result' is not a table")
-		utils.WriteJSONError(h.w, http.StatusInternalServerError, "'Result' is not a table")
+		utils.WriteJSONError(w, http.StatusInternalServerError, "'Result' is not a table")
 		return
 	}
 
@@ -126,8 +126,8 @@ func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {
 		out[key.String()] = utils.ConvertLuaTypesToGolang(value)
 	})
 
-	h.w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(h.w).Encode(out); err != nil {
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(out); err != nil {
 		log.Error("Failed to encode JSON response",
 			slog.String("error", err.Error()))
 	}

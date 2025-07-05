@@ -1,7 +1,9 @@
 package config
 
+import "os"
+
 // UUIDLength is uuids length for sessions. By default it is 16 bytes.
-var UUIDLength byte = 4
+var UUIDLength byte = 16
 
 // ApiRoute setting for go-chi for main route for api requests
 var ApiRoute string = "/api/{ver}"
@@ -17,6 +19,12 @@ var NodeVersion string
 // In the repository, the file specified in the variable contains the current information about updates
 var ActualFileName string = "actual.txt"
 
+// UpdateArchiveName is the name of the archive that will be used for updates.
+var UpdateArchiveName string = "gosally-node"
+
+// UpdateInstallPath is the path where the update will be installed.
+var UpdateDownloadPath string = os.TempDir()
+
 type _internalConsts struct{}
 type _serverConsts struct{}
 type _updateConsts struct{}
@@ -28,7 +36,9 @@ func (_ _updateConsts) GetNodeVersion() string {
 	}
 	return NodeVersion
 }
-func (_ _updateConsts) GetActualFileName() string { return ActualFileName }
+func (_ _updateConsts) GetActualFileName() string     { return ActualFileName }
+func (_ _updateConsts) GetUpdateArchiveName() string  { return UpdateArchiveName }
+func (_ _updateConsts) GetUpdateDownloadPath() string { return UpdateDownloadPath }
 
 func GetInternalConsts() _internalConsts      { return _internalConsts{} }
 func (_ _internalConsts) GetUUIDLength() byte { return UUIDLength }
