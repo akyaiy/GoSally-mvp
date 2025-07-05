@@ -6,7 +6,7 @@ System that allows you to build your own infrastructure based on identical nodes
 ### Features
 Go Sally is not viable at the moment, but it already has the ability to run embedded scripts, log slog events to stdout, and handle RPC like requests.
 
-#### Example of use
+### Example of use
 The basic directory tree looks something like this
 ```
 .
