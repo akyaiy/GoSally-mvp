@@ -1,56 +1,21 @@
 package sv1
 
 import (
-	"crypto/rand"
-	"encoding/hex"
-	"encoding/json"
 	"log/slog"
 	"net/http"
 	"os"
 	"regexp"
 
-	"github.com/akyaiy/GoSally-mvp/core/config"
+	"github.com/akyaiy/GoSally-mvp/core/utils"
 )
 
-func (h *HandlerV1) ErrNotFound(w http.ResponseWriter, r *http.Request) {
-	h.w = w
-	h.r = r
-	h._errNotFound()
-}
-
-func (h *HandlerV1) newUUID() string {
-	bytes := make([]byte, int(config.GetInternalConsts().GetUUIDLength()/2))
-	_, err := rand.Read(bytes)
-	if err != nil {
-		h.log.Error("Failed to generate UUID", slog.String("error", err.Error()))
-		return ""
-	}
-	return hex.EncodeToString(bytes)
-}
-
-func (h *HandlerV1) _errNotFound() {
-	h.writeJSONError(http.StatusBadRequest, "invalid request")
+func (h *HandlerV1) errNotFound(w http.ResponseWriter, r *http.Request) {
+	utils.WriteJSONError(h.w, http.StatusBadRequest, "invalid request")
 	h.log.Error("HTTP request error",
 		slog.String("remote", h.r.RemoteAddr),
 		slog.String("method", h.r.Method),
 		slog.String("url", h.r.URL.String()),
 		slog.Int("status", http.StatusBadRequest))
-}
-
-func (h *HandlerV1) writeJSONError(status int, msg string) {
-	h.w.Header().Set("Content-Type", "application/json")
-	h.w.WriteHeader(status)
-	resp := map[string]interface{}{
-		"status": "error",
-		"error":  msg,
-		"code":   status,
-	}
-	if err := json.NewEncoder(h.w).Encode(resp); err != nil {
-		h.log.Error("Failed to write JSON error response",
-			slog.String("error", err.Error()),
-			slog.Int("status", status))
-		return
-	}
 }
 
 func (h *HandlerV1) extractDescriptionStatic(path string) (string, error) {

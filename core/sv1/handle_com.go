@@ -7,12 +7,22 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/akyaiy/GoSally-mvp/core/utils"
 	"github.com/go-chi/chi/v5"
 	lua "github.com/yuin/gopher-lua"
 )
 
-func (h *HandlerV1) _handle() {
-	uuid16 := h.newUUID()
+// HandlerV1 is the main handler for version 1 of the API.
+// The function processes the HTTP request and runs Lua scripts, 
+// preparing the environment and subsequently transmitting the execution result
+func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {
+	uuid16, err := utils.NewUUID()
+	if err != nil {
+		h.log.Error("Failed to generate UUID",
+			slog.String("error", err.Error()))
+		utils.WriteJSONError(h.w, http.StatusInternalServerError, "failed to generate UUID: "+err.Error())
+		return
+	}
 	log := h.log.With(
 		slog.Group("request",
 			slog.String("version", h.GetVersion()),
@@ -32,7 +42,7 @@ func (h *HandlerV1) _handle() {
 			slog.String("error", "invalid command"),
 			slog.String("cmd", cmd),
 			slog.Int("status", http.StatusBadRequest))
-		h.writeJSONError(http.StatusBadRequest, "invalid command")
+		utils.WriteJSONError(h.w, http.StatusBadRequest, "invalid command")
 		return
 	}
 
@@ -42,7 +52,7 @@ func (h *HandlerV1) _handle() {
 			slog.String("error", "command not found"),
 			slog.String("cmd", cmd),
 			slog.Int("status", http.StatusNotFound))
-		h.writeJSONError(http.StatusNotFound, "command not found")
+		utils.WriteJSONError(h.w, http.StatusNotFound, "command not found")
 		return
 	}
 
@@ -52,15 +62,13 @@ func (h *HandlerV1) _handle() {
 			slog.String("error", "command not found"),
 			slog.String("cmd", cmd),
 			slog.Int("status", http.StatusNotFound))
-		h.writeJSONError(http.StatusNotFound, "command not found")
+		utils.WriteJSONError(h.w, http.StatusNotFound, "command not found")
 		return
 	}
 
 	L := lua.NewState()
 	defer L.Close()
 
-	// Создаем таблицу Params
-	// Создаем таблицу In с Params
 	paramsTable := L.NewTable()
 	qt := h.r.URL.Query()
 	for k, v := range qt {
@@ -78,49 +86,44 @@ func (h *HandlerV1) _handle() {
 	L.SetField(outTable, "Result", resultTable)
 	L.SetGlobal("Out", outTable)
 
-	// Скрипт подготовки окружения
 	prepareLuaEnv := filepath.Join(h.cfg.ComDir, "_prepare.lua")
 	if _, err := os.Stat(prepareLuaEnv); err == nil {
 		if err := L.DoFile(prepareLuaEnv); err != nil {
 			log.Error("Failed to prepare lua environment",
 				slog.String("error", err.Error()))
-			h.writeJSONError(http.StatusInternalServerError, "lua error: "+err.Error())
+			utils.WriteJSONError(h.w, http.StatusInternalServerError, "lua error: "+err.Error())
 			return
 		}
 	} else {
 		log.Warn("No environment preparation script found, skipping preparation")
 	}
 
-	// Основной Lua скрипт
 	if err := L.DoFile(scriptPath); err != nil {
 		log.Error("Failed to execute lua script",
 			slog.String("error", err.Error()))
-		h.writeJSONError(http.StatusInternalServerError, "lua error: "+err.Error())
+		utils.WriteJSONError(h.w, http.StatusInternalServerError, "lua error: "+err.Error())
 		return
 	}
 
-	// Получаем Out
 	lv := L.GetGlobal("Out")
 	tbl, ok := lv.(*lua.LTable)
 	if !ok {
 		log.Error("Lua global 'Out' is not a table")
-		h.writeJSONError(http.StatusInternalServerError, "'Out' is not a table")
+		utils.WriteJSONError(h.w, http.StatusInternalServerError, "'Out' is not a table")
 		return
 	}
 
-	// Получаем Result из Out
 	resultVal := tbl.RawGetString("Result")
 	resultTbl, ok := resultVal.(*lua.LTable)
 	if !ok {
 		log.Error("Lua global 'Result' is not a table")
-		h.writeJSONError(http.StatusInternalServerError, "'Result' is not a table")
+		utils.WriteJSONError(h.w, http.StatusInternalServerError, "'Result' is not a table")
 		return
 	}
 
-	// Перебираем таблицу Result
 	out := make(map[string]interface{})
 	resultTbl.ForEach(func(key lua.LValue, value lua.LValue) {
-		out[key.String()] = convertTypes(value)
+		out[key.String()] = utils.ConvertLuaTypesToGolang(value)
 	})
 
 	h.w.Header().Set("Content-Type", "application/json")
@@ -146,27 +149,4 @@ func (h *HandlerV1) _handle() {
 	}
 
 	log.Info("Session completed")
-}
-
-func convertTypes(value lua.LValue) any {
-	switch value.Type() {
-	case lua.LTString:
-		return value.String()
-	case lua.LTNumber:
-		return float64(value.(lua.LNumber))
-	case lua.LTBool:
-		return bool(value.(lua.LBool))
-	case lua.LTTable:
-		result := make(map[string]interface{})
-		if tbl, ok := value.(*lua.LTable); ok {
-			tbl.ForEach(func(key lua.LValue, value lua.LValue) {
-				result[key.String()] = convertTypes(value)
-			})
-		}
-		return result
-	case lua.LTNil:
-		return nil
-	default:
-		return value.String()
-	}
 }

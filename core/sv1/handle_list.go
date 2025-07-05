@@ -8,11 +8,19 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/akyaiy/GoSally-mvp/core/utils"
 	"github.com/go-chi/chi/v5"
 )
 
-func (h *HandlerV1) _handleList() {
-	uuid16 := h.newUUID()
+// The function processes the HTTP request and returns a list of available commands.
+func (h *HandlerV1) HandleList(w http.ResponseWriter, r *http.Request) {
+	uuid16, err := utils.NewUUID()
+	if err != nil {
+		h.log.Error("Failed to generate UUID",
+			slog.String("error", err.Error()))
+		utils.WriteJSONError(h.w, http.StatusInternalServerError, "failed to generate UUID: "+err.Error())
+		return
+	}
 	log := h.log.With(
 		slog.Group("request",
 			slog.String("version", h.GetVersion()),
@@ -31,7 +39,6 @@ func (h *HandlerV1) _handleList() {
 	}
 	var (
 		files         []os.DirEntry
-		err           error
 		commands      = make(map[string]ComMeta)
 		cmdsProcessed = make(map[string]bool)
 	)
@@ -39,7 +46,7 @@ func (h *HandlerV1) _handleList() {
 	if files, err = os.ReadDir(h.cfg.ComDir); err != nil {
 		log.Error("Failed to read commands directory",
 			slog.String("error", err.Error()))
-		h.writeJSONError(http.StatusInternalServerError, "failed to read commands directory: "+err.Error())
+		utils.WriteJSONError(h.w, http.StatusInternalServerError, "failed to read commands directory: "+err.Error())
 		return
 	}
 

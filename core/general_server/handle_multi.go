@@ -14,13 +14,13 @@
 package general_server
 
 import (
-	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
 	"slices"
 
 	"github.com/akyaiy/GoSally-mvp/core/config"
+	"github.com/akyaiy/GoSally-mvp/core/utils"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -140,7 +140,7 @@ func (s *GeneralServer) Handle(w http.ResponseWriter, r *http.Request) {
 
 	log.Error("HTTP request error: unsupported API version",
 		slog.Int("status", http.StatusBadRequest))
-	s.writeJSONError(http.StatusBadRequest, "unsupported API version")
+	utils.WriteJSONError(s.w, http.StatusBadRequest, "unsupported API version")
 }
 
 // HandleList processes incoming HTTP requests for listing commands, routing them to the appropriate server based on the API version.
@@ -182,23 +182,5 @@ func (s *GeneralServer) HandleList(w http.ResponseWriter, r *http.Request) {
 
 	log.Error("HTTP request error: unsupported API version",
 		slog.Int("status", http.StatusBadRequest))
-	s.writeJSONError(http.StatusBadRequest, "unsupported API version")
-}
-
-// writeJSONError writes a JSON error response to the HTTP response writer.
-// It sets the Content-Type to application/json, writes the specified HTTP status code,
-func (s *GeneralServer) writeJSONError(status int, msg string) {
-	s.w.Header().Set("Content-Type", "application/json")
-	s.w.WriteHeader(status)
-	resp := map[string]interface{}{
-		"status": "error",
-		"error":  msg,
-		"code":   status,
-	}
-	if err := json.NewEncoder(s.w).Encode(resp); err != nil {
-		s.log.Error("Failed to write JSON error response",
-			slog.String("error", err.Error()),
-			slog.Int("status", status))
-		return
-	}
+	utils.WriteJSONError(s.w, http.StatusBadRequest, "unsupported API version")
 }

@@ -63,7 +63,6 @@ func main() {
 			w.WriteHeader(http.StatusNoContent)
 		})
 	})
-	r.NotFound(serverv1.ErrNotFound)
 
 	address := cfg.Address
 	if cfg.TlsEnabled {
