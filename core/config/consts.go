@@ -22,7 +22,7 @@ type _updateConsts struct{}
 func GetUpdateConsts() _updateConsts { return _updateConsts{} }
 func (_ _updateConsts) GetNodeVersion() string {
 	if NodeVersion == "" {
-		return "version0.0.0-none"
+		return "v0.0.0-none"
 	}
 	return NodeVersion
 }

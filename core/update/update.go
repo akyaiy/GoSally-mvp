@@ -42,10 +42,10 @@ func NewUpdater(log slog.Logger, cfg *config.ConfigConf) *Updater {
 
 func splitVersionString(versionStr string) (Version, Branch, error) {
 	versionStr = strings.TrimSpace(versionStr)
-	if !strings.HasPrefix(versionStr, "version") {
-		return "", "unknown", errors.New("version string does not start with 'version'")
+	if !strings.HasPrefix(versionStr, "v") {
+		return "", "unknown", errors.New("version string does not start with 'v'")
 	}
-	parts := strings.SplitN(versionStr[len("version"):], "-", 2)
+	parts := strings.SplitN(versionStr[len("v"):], "-", 2)
 	parts[0] = strings.TrimPrefix(parts[0], "version")
 	if len(parts) != 2 {
 		return Version(parts[0]), Branch("unknown"), errors.New("version string format invalid")

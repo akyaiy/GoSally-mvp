@@ -2,7 +2,7 @@ APP_NAME := node
 BIN_DIR := bin
 GOPATH := $(shell go env GOPATH)
 export CONFIG_PATH := ./config.yaml
-LDFLAGS := -X 'github.com/akyaiy/GoSally-mvp/core/config.NodeVersion=version0.0.1-dev'
+LDFLAGS := -X 'github.com/akyaiy/GoSally-mvp/core/config.NodeVersion=v0.0.1-dev'
 CGO_CFLAGS := -I/usr/local/include
 CGO_LDFLAGS := -L/usr/local/lib -llua5.1 -lm -ldl
 .PHONY: all build run runq test fmt vet lint check clean
