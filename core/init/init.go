@@ -39,7 +39,7 @@ func init() {
 	output.Close()
 	runArgs := os.Args
 	runArgs[0] = runBinaryPath
-	if err := syscall.Exec(runBinaryPath, runArgs, append(os.Environ(), "GS_RUNTIME_PATH=" + runPath)); err != nil {
+	if err := syscall.Exec(runBinaryPath, runArgs, append(os.Environ(), "GS_RUNTIME_PATH="+runPath)); err != nil {
 		log.Fatalf("Failed to init node: %s", err)
 	}
 }

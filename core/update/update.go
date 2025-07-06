@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -203,7 +204,6 @@ func (u *Updater) Update() error {
 	if err != nil {
 		return errors.New("failed to create temp dir " + err.Error())
 	}
-	//defer os.RemoveAll(downloadPath)
 	_, currentBranch, err := u.GetCurrentVersion()
 	if err != nil {
 		return errors.New("failed to get current version: " + err.Error())
@@ -287,7 +287,6 @@ func (u *Updater) InstallAndRestart(newBinaryPath string) error {
 	if err != nil {
 		return err
 	}
-	
 
 	if _, err := io.Copy(output, input); err != nil {
 		return err
@@ -298,6 +297,10 @@ func (u *Updater) InstallAndRestart(newBinaryPath string) error {
 	}
 
 	input.Close()
+	toClean := regexp.MustCompile(`^(/tmp/\d+-gs-up/)`).FindStringSubmatch(newBinaryPath)
+	if len(toClean) > 1 {
+		os.RemoveAll(toClean[0])
+	}
 	output.Close()
 	// Запускаем новый процесс
 	u.Log.Info("Launching new version...", slog.String("path", targetPath))
@@ -310,10 +313,6 @@ func (u *Updater) InstallAndRestart(newBinaryPath string) error {
 	if err = cmd.Start(); err != nil {
 		return err
 	}
-	// if err := syscall.Exec(targetPath, os.Args, os.Environ()); err != nil {
-	// 	u.Log.Error("Failed to run new version automatickly", slog.String("err", err.Error()))
-	// 	return err
-	// }
 	u.Log.Info("Shutting down")
 	os.Exit(0)
 	return errors.New("failed to shutdown the process")

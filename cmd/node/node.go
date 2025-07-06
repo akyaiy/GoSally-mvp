@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"net"
 	"net/http"
@@ -31,35 +32,32 @@ func init() {
 
 	currentV, currentB, _ := update.NewUpdater(*log, cfg).GetCurrentVersion()
 
-	log.Info("Initializing server", slog.String("address", cfg.HTTPServer.Address), slog.String("version", string(currentV)+"-"+string(currentB)))
+	log.Info("Initializing GoSally server", slog.String("address", cfg.HTTPServer.Address), slog.String("version", string(currentV)+"-"+string(currentB)))
 	log.Debug("Server running in debug mode")
 }
 
-func UpdateDaemon(u *update.Updater, cfg config.ConfigConf) {
-	for {
-		isNewUpdate, err := u.CkeckUpdates()
-		if err != nil {
-			log.Error("Failed to check for updates", slog.String("error", err.Error()))
-		}
-		if isNewUpdate {
-			log.Info("New update available, starting update process...")
-			err = u.Update()
-			if err != nil {
-				log.Error("Failed to update", slog.String("error", err.Error()))
-			} else {
-				log.Info("Update completed successfully")
-			}
-		} else {
-			log.Info("No new updates available")
-		}
-		time.Sleep(cfg.CheckInterval)
+func UpdateDaemon(u *update.Updater, cfg config.ConfigConf, srv *http.Server) {
+	//time.Sleep(5 * time.Second)
+	log.Info("New update available, starting update process...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	log.Info("Trying to down server gracefully before update")
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Error("Failed to shutdown server gracefully", slog.String("error", err.Error()))
 	}
+
+	err := u.Update()
+	if err != nil {
+		log.Error("Failed to update", slog.String("error", err.Error()))
+	} else {
+		log.Info("Update completed successfully")
+	}
+
 }
 
 func main() {
-	updater := update.NewUpdater(*log, cfg)
-	go UpdateDaemon(updater, *cfg)
-
 	serverv1 := sv1.InitV1Server(&sv1.HandlerV1InitStruct{
 		Log:            *log,
 		Config:         cfg,
@@ -90,30 +88,55 @@ func main() {
 		})
 	})
 
-	address := cfg.Address
-	if cfg.TlsEnabled {
-		log.Info("HTTPS server started with TLS", slog.String("address", address))
-		listener, err := net.Listen("tcp", address)
-		if err != nil {
-			log.Error("Failed to start TLS listener", slog.String("error", err.Error()))
-			return
-		}
-		limitedListener := netutil.LimitListener(listener, 100)
-		err = http.ServeTLS(limitedListener, r, cfg.CertFile, cfg.KeyFile)
-		if err != nil {
-			log.Error("Failed to start HTTPS server", slog.String("error", err.Error()))
-		}
-	} else {
-		log.Info("HTTP server started", slog.String("address", address))
-		listener, err := net.Listen("tcp", address)
-		if err != nil {
-			log.Error("Failed to start listener", slog.String("error", err.Error()))
-			return
-		}
-		limitedListener := netutil.LimitListener(listener, 100)
-		err = http.Serve(limitedListener, r)
-		if err != nil {
-			log.Error("Failed to start HTTP server", slog.String("error", err.Error()))
-		}
+	srv := &http.Server{
+		Addr:    cfg.Address,
+		Handler: r,
 	}
+	go func() {
+		if cfg.TlsEnabled {
+			log.Info("HTTPS server started with TLS", slog.String("address", cfg.Address))
+			listener, err := net.Listen("tcp", cfg.Address)
+			if err != nil {
+				log.Error("Failed to start TLS listener", slog.String("error", err.Error()))
+				return
+			}
+			limitedListener := netutil.LimitListener(listener, 100)
+			err = http.ServeTLS(limitedListener, r, cfg.CertFile, cfg.KeyFile)
+			if err != nil {
+				log.Error("Failed to start HTTPS server", slog.String("error", err.Error()))
+			}
+		} else {
+			log.Info("HTTP server started", slog.String("address", cfg.Address))
+			listener, err := net.Listen("tcp", cfg.Address)
+			if err != nil {
+				log.Error("Failed to start listener", slog.String("error", err.Error()))
+				return
+			}
+			limitedListener := netutil.LimitListener(listener, 100)
+			err = http.Serve(limitedListener, r)
+			if err != nil {
+				log.Error("Failed to start HTTP server", slog.String("error", err.Error()))
+			}
+		}
+	}()
+
+	time.Sleep(5*time.Second)
+	updater := update.NewUpdater(*log, cfg)
+	go func() {
+		time.Sleep(6*time.Second)
+		for {
+			isNewUpdate, err := updater.CkeckUpdates()
+			if err != nil {
+				log.Error("Failed to check for updates", slog.String("error", err.Error()))
+			}
+			if isNewUpdate {
+				UpdateDaemon(updater, *cfg, srv)
+			} else {
+				log.Info("No new updates available")
+			}
+			time.Sleep(cfg.CheckInterval)
+		}
+	}()
+
+	select {}
 }
