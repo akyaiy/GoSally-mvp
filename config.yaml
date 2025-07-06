@@ -11,7 +11,7 @@ http_server:
       - s2
 
 tls:
-  enabled: false
+  enabled: true
   cert_file: "./cert/fullchain.pem"
   key_file: "./cert/privkey.pem"
 
