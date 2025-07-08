@@ -24,11 +24,11 @@ The basic directory tree looks something like this
 ```
 Launch by command 
 ```bash
-$ make run
+./node run
 ```
 or for structured logs
 ```bash
-$ make run
+./node run | jq
 ```
 
 Example of GET request to server
@@ -38,9 +38,14 @@ curl -s http://localhost:8080/api/v1/com/echo?msg=Hello
 Then the response from the server
 ```json
 {
-  "answer": "Hello",
-  "status": "ok"
+  "ResponsibleAgentUUID": "4593a87000bbe088f4e79c477e9c90d3",
+  "RequestedCommand": "echo",
+  "Response": {
+    "answer": "Hello",
+    "status": "ok"
+  }
 }
+
 ```
 
 ### How to install
