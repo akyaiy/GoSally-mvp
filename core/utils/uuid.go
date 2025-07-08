@@ -8,11 +8,34 @@ import (
 	"github.com/akyaiy/GoSally-mvp/core/config"
 )
 
-func NewUUID() (string, error) {
-	bytes := make([]byte, int(config.GetInternalConsts().GetUUIDLength()/2))
+func NewUUIDRaw(length int) ([]byte, error) {
+	bytes := make([]byte, int(length))
 	_, err := rand.Read(bytes)
 	if err != nil {
-		return "", errors.New("failed to generate UUID: " + err.Error())
+		return bytes, errors.New("failed to generate UUID: " + err.Error())
 	}
-	return hex.EncodeToString(bytes), nil
+	return bytes, nil
+}
+
+func NewUUID(length int) (string, error) {
+	data, err := NewUUIDRaw(length)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(data), nil
+}
+
+func NewUUID32() (string, error) {
+	return NewUUID(config.GetInternalConsts().GetUUIDLength())
+}
+
+func NewUUID32Raw() ([]byte, error) {
+	data, err := NewUUIDRaw(config.GetInternalConsts().GetUUIDLength())
+	if err != nil {
+		return data, err
+	}
+	if len(data) != config.GetInternalConsts().GetUUIDLength() {
+		return data, errors.New("unexpected UUID length")
+	}
+	return data, nil
 }

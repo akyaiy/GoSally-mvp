@@ -13,16 +13,16 @@ import (
 type HandlerV1InitStruct struct {
 	Ver            string
 	Log            slog.Logger
-	Config         *config.ConfigConf
+	Config         *config.Conf
 	AllowedCmd     *regexp.Regexp
 	ListAllowedCmd *regexp.Regexp
 }
 
 // HandlerV1 implements the ServerV1UtilsContract and serves as the main handler for API requests.
 type HandlerV1 struct {
-	log slog.Logger
+	log *slog.Logger
 
-	cfg *config.ConfigConf
+	cfg *config.Conf
 
 	// allowedCmd and listAllowedCmd are regular expressions used to validate command names.
 	allowedCmd     *regexp.Regexp
@@ -36,7 +36,7 @@ type HandlerV1 struct {
 // because there is no validation of parameters in this function.
 func InitV1Server(o *HandlerV1InitStruct) *HandlerV1 {
 	return &HandlerV1{
-		log:            o.Log,
+		log:            &o.Log,
 		cfg:            o.Config,
 		allowedCmd:     o.AllowedCmd,
 		listAllowedCmd: o.ListAllowedCmd,

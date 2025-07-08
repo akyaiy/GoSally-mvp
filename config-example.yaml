@@ -1,0 +1,21 @@
+mode: "prod"
+
+http_server:
+  address: "0.0.0.0:8080"
+  api:
+    latest-version: v1
+    layers:
+      - b1
+      - s2
+
+tls:
+  enabled: false
+  cert_file: "./cert/fullchain.pem"
+  key_file: "./cert/privkey.pem"
+
+com_dir: "com/"
+
+updates:
+  enabled: false
+  check-interval: 1h
+  repository_url: "https://repo.serve.lv/raw/go-sally"

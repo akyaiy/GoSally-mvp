@@ -56,13 +56,13 @@ type GeneralServer struct {
 	servers map[serversApiVer]GeneralServerApiContract
 
 	log slog.Logger
-	cfg *config.ConfigConf
+	cfg *config.Conf
 }
 
 // GeneralServerInit structure only for initialization general server.
 type GeneralServerInit struct {
 	Log    slog.Logger
-	Config *config.ConfigConf
+	Config *config.Conf
 }
 
 // InitGeneral initializes a new GeneralServer with the provided configuration and registered servers.
@@ -126,11 +126,11 @@ func (s *GeneralServer) Handle(w http.ResponseWriter, r *http.Request) {
 	// and used as a fallback for unsupported versions
 	// this is useful for cases where the API version is not explicitly registered
 	// but the logical layer is defined in the configuration
-	if slices.Contains(s.cfg.Layers, serverReqApiVer) {
-		if srv, ok := s.servers[serversApiVer(s.cfg.LatestVer)]; ok {
+	if slices.Contains(s.cfg.HTTPServer.HTTPServer_Api.Layers, serverReqApiVer) {
+		if srv, ok := s.servers[serversApiVer(s.cfg.HTTPServer.HTTPServer_Api.LatestVer)]; ok {
 			s.log.Debug("Using latest version under custom layer",
 				slog.String("layer", serverReqApiVer),
-				slog.String("fallback-version", s.cfg.LatestVer),
+				slog.String("fallback-version", s.cfg.HTTPServer.HTTPServer_Api.LatestVer),
 			)
 			// transfer control to the latest version server under the custom layer
 			srv.Handle(w, r)
@@ -168,11 +168,11 @@ func (s *GeneralServer) HandleList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if slices.Contains(s.cfg.Layers, serverReqApiVer) {
-		if srv, ok := s.servers[serversApiVer(s.cfg.LatestVer)]; ok {
+	if slices.Contains(s.cfg.HTTPServer.HTTPServer_Api.Layers, serverReqApiVer) {
+		if srv, ok := s.servers[serversApiVer(s.cfg.HTTPServer.HTTPServer_Api.LatestVer)]; ok {
 			log.Debug("Using latest version under custom layer",
 				slog.String("layer", serverReqApiVer),
-				slog.String("fallback-version", s.cfg.LatestVer),
+				slog.String("fallback-version", s.cfg.HTTPServer.HTTPServer_Api.LatestVer),
 			)
 			// transfer control to the latest version server under the custom layer
 			srv.HandleList(w, r)

@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -36,10 +37,10 @@ type UpdaterContract interface {
 
 type Updater struct {
 	Log    slog.Logger
-	Config *config.ConfigConf
+	Config *config.Conf
 }
 
-func NewUpdater(log slog.Logger, cfg *config.ConfigConf) *Updater {
+func NewUpdater(log slog.Logger, cfg *config.Conf) *Updater {
 	return &Updater{
 		Log:    log,
 		Config: cfg,
@@ -197,10 +198,10 @@ func (u *Updater) CkeckUpdates() (IsNewUpdate, error) {
 }
 
 func (u *Updater) Update() error {
-	if !(u.Config.UpdatesEnabled) {
+	if !(u.Config.Updates.UpdatesEnabled) {
 		return errors.New("updates are disabled in config, skipping update")
 	}
-	downloadPath, err := os.MkdirTemp("", "*-gs-up")
+	downloadPath, err := os.MkdirTemp("", "*-gosally-update")
 	if err != nil {
 		return errors.New("failed to create temp dir " + err.Error())
 	}
@@ -297,7 +298,11 @@ func (u *Updater) InstallAndRestart(newBinaryPath string) error {
 	}
 
 	input.Close()
-	toClean := regexp.MustCompile(`^(/tmp/\d+-gs-up/)`).FindStringSubmatch(newBinaryPath)
+
+	reSafeTmpDir := regexp.QuoteMeta(os.TempDir())
+	toClean := regexp.MustCompile(
+		fmt.Sprintf(`^(%s/\d+-gosally-update/)`, reSafeTmpDir),
+	).FindStringSubmatch(newBinaryPath)
 	if len(toClean) > 1 {
 		os.RemoveAll(toClean[0])
 	}

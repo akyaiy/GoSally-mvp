@@ -30,19 +30,19 @@ build:
 	@# @echo "CGO_CFLAGS is: '$(CGO_CFLAGS)'"
 	@# @echo "CGO_LDFLAGS is: '$(CGO_LDFLAGS)'"
 	@# CGO_CFLAGS="$(CGO_CFLAGS)" CGO_LDFLAGS="$(CGO_LDFLAGS)" 
-	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(APP_NAME) ./cmd/$(APP_NAME)
+	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(APP_NAME) ./
 
 run: build
 	@echo "Running!"
-	./$(BIN_DIR)/$(APP_NAME)
+	exec ./$(BIN_DIR)/$(APP_NAME)
 
 runq: build
 	@echo "Running!"
-	./$(BIN_DIR)/$(APP_NAME) | jq
+	exec ./$(BIN_DIR)/$(APP_NAME) | jq
 
 pure-run:
 	@echo "Running!"
-	./$(BIN_DIR)/$(APP_NAME) | jq
+	exec ./$(BIN_DIR)/$(APP_NAME)
 
 test:
 	@go test ./... | grep -v '^?' || true

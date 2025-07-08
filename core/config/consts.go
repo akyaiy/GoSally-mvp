@@ -3,7 +3,7 @@ package config
 import "os"
 
 // UUIDLength is uuids length for sessions. By default it is 16 bytes.
-var UUIDLength byte = 16
+var UUIDLength int = 16
 
 // ApiRoute setting for go-chi for main route for api requests
 var ApiRoute string = "/api/{ver}"
@@ -25,6 +25,8 @@ var UpdateArchiveName string = "gosally-node"
 // UpdateInstallPath is the path where the update will be installed.
 var UpdateDownloadPath string = os.TempDir()
 
+var MetaDir string = "./.meta"
+
 type _internalConsts struct{}
 type _serverConsts struct{}
 type _updateConsts struct{}
@@ -40,8 +42,9 @@ func (_ _updateConsts) GetActualFileName() string     { return ActualFileName }
 func (_ _updateConsts) GetUpdateArchiveName() string  { return UpdateArchiveName }
 func (_ _updateConsts) GetUpdateDownloadPath() string { return UpdateDownloadPath }
 
-func GetInternalConsts() _internalConsts      { return _internalConsts{} }
-func (_ _internalConsts) GetUUIDLength() byte { return UUIDLength }
+func GetInternalConsts() _internalConsts     { return _internalConsts{} }
+func (_ _internalConsts) GetUUIDLength() int { return UUIDLength }
+func (_ _internalConsts) GetMetaDir() string { return MetaDir }
 
 func GetServerConsts() _serverConsts           { return _serverConsts{} }
 func (_ _serverConsts) GetApiRoute() string    { return ApiRoute }

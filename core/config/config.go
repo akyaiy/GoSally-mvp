@@ -3,76 +3,57 @@
 package config
 
 import (
-	"log"
-	"os"
 	"time"
-
-	"github.com/ilyakaznacheev/cleanenv"
 )
 
-// ConfigConf basic structure of configs
-type ConfigConf struct {
-	Mode       string `yaml:"mode" env-default:"dev"`
-	ComDir     string `yaml:"com_dir" env-default:"./com/"`
-	HTTPServer `yaml:"http_server"`
-	TLS        `yaml:"tls"`
-	Internal   `yaml:"internal"`
-	Updates    `yaml:"updates"`
+var ConfigPath string
+
+type CompositorContract interface {
+	LoadEnv() error
+	LoadConf(path string) error
+}
+
+type Compositor struct {
+	Conf *Conf
+	Env  *Env
+}
+
+type Conf struct {
+	Mode       string     `mapstructure:"mode"`
+	ComDir     string     `mapstructure:"com_dir"`
+	HTTPServer HTTPServer `mapstructure:"http_server"`
+	TLS        TLS        `mapstructure:"tls"`
+	Updates    Updates    `mapstructure:"updates"`
 }
 
 type HTTPServer struct {
-	Address        string        `yaml:"address" env-default:"0.0.0.0:8080"`
-	Timeout        time.Duration `yaml:"timeout" env-default:"5s"`
-	IdleTimeout    time.Duration `yaml:"idle_timeout" env-default:"60s"`
-	HTTPServer_Api `yaml:"api"`
+	Address        string         `mapstructure:"address"`
+	Timeout        time.Duration  `mapstructure:"timeout"`
+	IdleTimeout    time.Duration  `mapstructure:"idle_timeout"`
+	HTTPServer_Api HTTPServer_Api `mapstructure:"api"`
 }
 
 type HTTPServer_Api struct {
-	LatestVer string   `yaml:"latest-version" env-required:"true"`
-	Layers    []string `yaml:"layers"`
+	LatestVer string   `mapstructure:"latest-version"`
+	Layers    []string `mapstructure:"layers"`
 }
 
 type TLS struct {
-	TlsEnabled bool   `yaml:"enabled" env-default:"false"`
-	CertFile   string `yaml:"cert_file" env-default:"./cert/server.crt"`
-	KeyFile    string `yaml:"key_file" env-default:"./cert/server.key"`
-}
-
-type Internal struct {
-	MetaDir string `yaml:"meta_dir" env-default:"./.meta/"`
+	TlsEnabled bool   `mapstructure:"enabled"`
+	CertFile   string `mapstructure:"cert_file"`
+	KeyFile    string `mapstructure:"key_file"`
 }
 
 type Updates struct {
-	UpdatesEnabled bool          `yaml:"enabled" env-default:"false"`
-	CheckInterval  time.Duration `yaml:"check_interval" env-default:"2h"`
-	RepositoryURL  string        `yaml:"repository_url" env-default:""`
-	WantedVersion  string        `yaml:"wanted_version" env-default:"latest-stable"`
+	UpdatesEnabled bool          `mapstructure:"enabled"`
+	CheckInterval  time.Duration `mapstructure:"check_interval"`
+	RepositoryURL  string        `mapstructure:"repository_url"`
+	WantedVersion  string        `mapstructure:"wanted_version"`
 }
 
 // ConfigEnv structure for environment variables
-type ConfigEnv struct {
-	ConfigPath string `env:"CONFIG_PATH" env-default:"./cfg/config.yaml"`
-	NodePath   string `env:"NODE_PATH" env-default:"./"`
-}
-
-// MustLoadConfig loads the configuration from the specified path and environment variables.
-// Program will shutdown if any error occurs during loading.
-func MustLoadConfig() *ConfigConf {
-	log.SetOutput(os.Stderr)
-	var configEnv ConfigEnv
-	if err := cleanenv.ReadEnv(&configEnv); err != nil {
-		log.Fatalf("Failed to read environment variables: %v", err)
-		os.Exit(1)
-	}
-	if _, err := os.Stat(configEnv.ConfigPath); os.IsNotExist(err) {
-		log.Fatalf("Config file does not exist: %s", configEnv.ConfigPath)
-		os.Exit(2)
-	}
-	var config ConfigConf
-	if err := cleanenv.ReadConfig(configEnv.ConfigPath, &config); err != nil {
-		log.Fatalf("Failed to read config file: %v", err)
-		os.Exit(3)
-	}
-	log.Printf("Configuration loaded successfully from %s", configEnv.ConfigPath)
-	return &config
+type Env struct {
+	ConfigPath     string `mapstructure:"config_path"`
+	NodePath       string `mapstructure:"node_path"`
+	ParentStagePID int    `mapstructure:"parent_pid"`
 }
