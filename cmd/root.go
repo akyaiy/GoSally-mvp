@@ -18,7 +18,7 @@ var rootCmd = &cobra.Command{
 	Short: "Go Sally node",
 	Long:  "Main node runner for Go Sally",
 	Run: func(cmd *cobra.Command, args []string) {
-		cmd.Help()
+		_ = cmd.Help()
 	},
 }
 
@@ -27,7 +27,7 @@ func Execute() {
 	log.SetPrefix(logs.SetBrightBlack(fmt.Sprintf("(%s) ", corestate.StageNotReady)))
 	log.SetFlags(log.Ldate | log.Ltime)
 	compositor.LoadCMDLine(rootCmd)
-	rootCmd.Execute()
+	_ = rootCmd.Execute()
 	// if err := rootCmd.Execute(); err != nil {
 	// 	log.Fatalf("Unexpected error: %s", err.Error())
 	// }

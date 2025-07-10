@@ -104,28 +104,28 @@ var runCmd = &cobra.Command{
 					cs.RunDir = runDir
 					input, err := os.Open(os.Args[0])
 					if err != nil {
-						run_manager.Clean()
+						_ = run_manager.Clean()
 						x.Log.Fatalf("Unexpected failure: %s", err.Error())
 					}
 					if err := run_manager.Set(cs.NodeBinName); err != nil {
-						run_manager.Clean()
+						_ = run_manager.Clean()
 						x.Log.Fatalf("Unexpected failure: %s", err.Error())
 					}
 					fmgr := run_manager.File(cs.NodeBinName)
 					output, err := fmgr.Open()
 					if err != nil {
-						run_manager.Clean()
+						_ = run_manager.Clean()
 						x.Log.Fatalf("Unexpected failure: %s", err.Error())
 					}
 
 					if _, err := io.Copy(output, input); err != nil {
 						fmgr.Close()
-						run_manager.Clean()
+						_ = run_manager.Clean()
 						x.Log.Fatalf("Unexpected failure: %s", err.Error())
 					}
 					if err := os.Chmod(filepath.Join(cs.RunDir, cs.NodeBinName), 0755); err != nil {
 						fmgr.Close()
-						run_manager.Clean()
+						_ = run_manager.Clean()
 						x.Log.Fatalf("Unexpected failure: %s", err.Error())
 					}
 					input.Close()
@@ -137,7 +137,7 @@ var runCmd = &cobra.Command{
 					env := utils.SetEviron(os.Environ(), fmt.Sprintf("GS_PARENT_PID=%d", os.Getpid()))
 
 					if err := syscall.Exec(runArgs[0], runArgs, env); err != nil {
-						run_manager.Clean()
+						_ = run_manager.Clean()
 						x.Log.Fatalf("Unexpected failure: %s", err.Error())
 					}
 				}
@@ -152,27 +152,27 @@ var runCmd = &cobra.Command{
 				cs.RunDir = run_manager.Toggle()
 				exist, err := utils.ExistsMatchingDirs(filepath.Join(os.TempDir(), fmt.Sprintf("/*-%s-%s", cs.UUID32, "gosally-runtime")), cs.RunDir)
 				if err != nil {
-					run_manager.Clean()
+					_ = run_manager.Clean()
 					x.Log.Fatalf("Unexpected failure: %s", err.Error())
 				}
 				if exist {
-					run_manager.Clean()
+					_ = run_manager.Clean()
 					x.Log.Fatalf("Unable to continue node operation: A node with the same identifier was found in the runtime environment")
 				}
 
 				if err := run_manager.Set("run.lock"); err != nil {
-					run_manager.Clean()
+					_ = run_manager.Clean()
 					x.Log.Fatalf("Unexpected failure: %s", err.Error())
 				}
 				lockPath, err := run_manager.Get("run.lock")
 				if err != nil {
-					run_manager.Clean()
+					_ = run_manager.Clean()
 					x.Log.Fatalf("Unexpected failure: %s", err.Error())
 				}
 				lockFile := ini.Empty()
 				secRun, err := lockFile.NewSection("runtime")
 				if err != nil {
-					run_manager.Clean()
+					_ = run_manager.Clean()
 					x.Log.Fatalf("Unexpected failure: %s", err.Error())
 				}
 				secRun.Key("pid").SetValue(fmt.Sprintf("%d/%d", os.Getpid(), x.Config.Env.ParentStagePID))
@@ -183,7 +183,7 @@ var runCmd = &cobra.Command{
 
 				err = lockFile.SaveTo(lockPath)
 				if err != nil {
-					run_manager.Clean()
+					_ = run_manager.Clean()
 					x.Log.Fatalf("Unexpected failure: %s", err.Error())
 				}
 			},
@@ -207,7 +207,7 @@ var runCmd = &cobra.Command{
 
 			_, err = runLockFile.Watch(ctxMain, func() {
 				x.Log.Printf("run.lock was touched")
-				run_manager.Clean()
+				_ = run_manager.Clean()
 				cancelMain()
 			})
 			if err != nil {
@@ -274,7 +274,7 @@ var runCmd = &cobra.Command{
 						x.SLog.Error("Failed to start HTTP server", slog.String("error", err.Error()))
 					}
 				}
-				srv.Shutdown(ctxMain)
+				_ = srv.Shutdown(ctxMain)
 			}()
 
 			if x.Config.Conf.Updates.UpdatesEnabled {

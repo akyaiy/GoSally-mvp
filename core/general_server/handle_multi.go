@@ -140,7 +140,9 @@ func (s *GeneralServer) Handle(w http.ResponseWriter, r *http.Request) {
 
 	log.Error("HTTP request error: unsupported API version",
 		slog.Int("status", http.StatusBadRequest))
-	utils.WriteJSONError(s.w, http.StatusBadRequest, "unsupported API version")
+	if err := utils.WriteJSONError(s.w, http.StatusBadRequest, "unsupported API version"); err != nil {
+		s.log.Error("Failed to write JSON", slog.String("err", err.Error()))
+	}
 }
 
 // HandleList processes incoming HTTP requests for listing commands, routing them to the appropriate server based on the API version.
@@ -182,5 +184,7 @@ func (s *GeneralServer) HandleList(w http.ResponseWriter, r *http.Request) {
 
 	log.Error("HTTP request error: unsupported API version",
 		slog.Int("status", http.StatusBadRequest))
-	utils.WriteJSONError(s.w, http.StatusBadRequest, "unsupported API version")
+	if err := utils.WriteJSONError(s.w, http.StatusBadRequest, "unsupported API version"); err != nil {
+		s.log.Error("Failed to write JSON", slog.String("err", err.Error()))
+	}
 }

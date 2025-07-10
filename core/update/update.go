@@ -313,7 +313,9 @@ func (u *Updater) InstallAndRestart() error {
 	args[0] = targetPath
 	env := utils.SetEviron(os.Environ(), "GS_PARENT_PID=-1")
 
-	run_manager.Clean()
+	if err := run_manager.Clean(); err != nil {
+		return err
+	}
 	return syscall.Exec(targetPath, args, env)
 	//u.cancel()
 

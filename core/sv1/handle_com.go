@@ -22,7 +22,10 @@ func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.log.Error("Failed to generate UUID",
 			slog.String("error", err.Error()))
-		utils.WriteJSONError(w, http.StatusInternalServerError, "failed to generate UUID: "+err.Error())
+
+		if err := utils.WriteJSONError(w, http.StatusInternalServerError, "failed to generate UUID: "+err.Error()); err != nil {
+			h.log.Error("Failed to write JSON", slog.String("err", err.Error()))
+		}
 		return
 	}
 	log := h.log.With(
@@ -44,7 +47,10 @@ func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {
 			slog.String("error", "invalid command"),
 			slog.String("cmd", cmd),
 			slog.Int("status", http.StatusBadRequest))
-		utils.WriteJSONError(w, http.StatusBadRequest, "invalid command")
+
+		if err := utils.WriteJSONError(w, http.StatusBadRequest, "invalid command"); err != nil {
+			h.log.Error("Failed to write JSON", slog.String("err", err.Error()))
+		}
 		return
 	}
 
@@ -54,7 +60,10 @@ func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {
 			slog.String("error", "command not found"),
 			slog.String("cmd", cmd),
 			slog.Int("status", http.StatusNotFound))
-		utils.WriteJSONError(w, http.StatusNotFound, "command not found")
+
+		if err := utils.WriteJSONError(w, http.StatusNotFound, "command not found"); err != nil {
+			h.log.Error("Failed to write JSON", slog.String("err", err.Error()))
+		}
 		return
 	}
 
@@ -64,7 +73,10 @@ func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {
 			slog.String("error", "command not found"),
 			slog.String("cmd", cmd),
 			slog.Int("status", http.StatusNotFound))
-		utils.WriteJSONError(w, http.StatusNotFound, "command not found")
+
+		if err := utils.WriteJSONError(w, http.StatusNotFound, "command not found"); err != nil {
+			h.log.Error("Failed to write JSON", slog.String("err", err.Error()))
+		}
 		return
 	}
 
@@ -93,7 +105,10 @@ func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {
 		if err := L.DoFile(prepareLuaEnv); err != nil {
 			log.Error("Failed to prepare lua environment",
 				slog.String("error", err.Error()))
-			utils.WriteJSONError(w, http.StatusInternalServerError, "lua error: "+err.Error())
+
+			if err := utils.WriteJSONError(w, http.StatusInternalServerError, "lua error: "+err.Error()); err != nil {
+				h.log.Error("Failed to write JSON", slog.String("err", err.Error()))
+			}
 			return
 		}
 	} else {
@@ -103,7 +118,9 @@ func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {
 	if err := L.DoFile(scriptPath); err != nil {
 		log.Error("Failed to execute lua script",
 			slog.String("error", err.Error()))
-		utils.WriteJSONError(w, http.StatusInternalServerError, "lua error: "+err.Error())
+		if err := utils.WriteJSONError(w, http.StatusInternalServerError, "lua error: "+err.Error()); err != nil {
+			h.log.Error("Failed to write JSON", slog.String("err", err.Error()))
+		}
 		return
 	}
 
@@ -111,7 +128,10 @@ func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {
 	tbl, ok := lv.(*lua.LTable)
 	if !ok {
 		log.Error("Lua global 'Out' is not a table")
-		utils.WriteJSONError(w, http.StatusInternalServerError, "'Out' is not a table")
+
+		if err := utils.WriteJSONError(w, http.StatusInternalServerError, "'Out' is not a table"); err != nil {
+			h.log.Error("Failed to write JSON", slog.String("err", err.Error()))
+		}
 		return
 	}
 
@@ -119,7 +139,10 @@ func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {
 	resultTbl, ok := resultVal.(*lua.LTable)
 	if !ok {
 		log.Error("Lua global 'Result' is not a table")
-		utils.WriteJSONError(w, http.StatusInternalServerError, "'Result' is not a table")
+
+		if err := utils.WriteJSONError(w, http.StatusInternalServerError, "'Result' is not a table"); err != nil {
+			h.log.Error("Failed to write JSON", slog.String("err", err.Error()))
+		}
 		return
 	}
 

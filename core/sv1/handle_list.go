@@ -20,7 +20,10 @@ func (h *HandlerV1) HandleList(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.log.Error("Failed to generate UUID",
 			slog.String("error", err.Error()))
-		utils.WriteJSONError(w, http.StatusInternalServerError, "failed to generate UUID: "+err.Error())
+
+		if err := utils.WriteJSONError(w, http.StatusInternalServerError, "failed to generate UUID: "+err.Error()); err != nil {
+			h.log.Error("Failed to write JSON", slog.String("err", err.Error()))
+		}
 		return
 	}
 	log := h.log.With(
@@ -48,7 +51,10 @@ func (h *HandlerV1) HandleList(w http.ResponseWriter, r *http.Request) {
 	if files, err = os.ReadDir(h.cfg.ComDir); err != nil {
 		log.Error("Failed to read commands directory",
 			slog.String("error", err.Error()))
-		utils.WriteJSONError(w, http.StatusInternalServerError, "failed to read commands directory: "+err.Error())
+
+		if err := utils.WriteJSONError(w, http.StatusInternalServerError, "failed to read commands directory: "+err.Error()); err != nil {
+			h.log.Error("Failed to write JSON", slog.String("err", err.Error()))
+		}
 		return
 	}
 
