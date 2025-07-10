@@ -18,7 +18,7 @@ The basic directory tree looks something like this
 │   └── _prepare.lua	Script that is executed before each script launch
 └── config.yaml
 
-3 directories, 6 files
+3 directories, 5 files
 
 ```
 Launch by command 

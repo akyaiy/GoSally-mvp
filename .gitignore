@@ -3,5 +3,6 @@ bin/
 cert/
 tmp/
 .meta/
+.vscode
 
 config.yaml
