@@ -16,6 +16,6 @@ tls:
 com_dir: "com/"
 
 updates:
-  enabled: false
+  enabled: true
   check-interval: 1h
   repository_url: "https://repo.serve.lv/raw/go-sally"

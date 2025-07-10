@@ -1,11 +1,34 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 )
 
+func SetEviron(eviron []string, envs ...string) []string {
+	envMap := make(map[string]string)
+	for _, e := range eviron {
+		parts := strings.SplitN(e, "=", 2)
+		if len(parts) == 2 {
+			envMap[parts[0]] = parts[1]
+		}
+	}
+	for _, e := range envs {
+		parts := strings.SplitN(e, "=", 2)
+		if len(parts) == 2 {
+			envMap[parts[0]] = parts[1]
+		}
+	}
+	newEviron := make([]string, 0, len(envMap))
+	for k, v := range envMap {
+		newEviron = append(newEviron, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	return newEviron
+}
 func CleanTempRuntimes(pattern string) error {
 	matches, err := filepath.Glob(pattern)
 	if err != nil {
@@ -42,7 +65,7 @@ func ExistsMatchingDirs(pattern, exclude string) (bool, error) {
 	return false, nil
 }
 
-func IndexPaths(runDir string) (*map[string]string, error) {
+func IndexPaths(runDir string) (map[string]string, error) {
 	indexed := make(map[string]string)
 
 	err := filepath.Walk(runDir, func(path string, info os.FileInfo, err error) error {
@@ -67,7 +90,7 @@ func IndexPaths(runDir string) (*map[string]string, error) {
 		return nil, err
 	}
 
-	return &indexed, nil
+	return indexed, nil
 }
 
 func IsFullyInitialized(i any) bool {

@@ -16,7 +16,7 @@ import (
 
 // The function processes the HTTP request and returns a list of available commands.
 func (h *HandlerV1) HandleList(w http.ResponseWriter, r *http.Request) {
-	uuid16, err := utils.NewUUID(int(config.GetInternalConsts().GetUUIDLength()))
+	uuid16, err := utils.NewUUID(int(config.UUIDLength))
 	if err != nil {
 		h.log.Error("Failed to generate UUID",
 			slog.String("error", err.Error()))
@@ -111,7 +111,7 @@ func (h *HandlerV1) HandleList(w http.ResponseWriter, r *http.Request) {
 	log.Debug("Command list prepared")
 
 	log.Info("Session completed")
-	uuid32, _ := corestate.GetNodeUUID(filepath.Join(config.GetInternalConsts().GetMetaDir(), "uuid"))
+	uuid32, _ := corestate.GetNodeUUID(filepath.Join(config.MetaDir, "uuid"))
 	response := ResponseFormat{
 		ResponsibleAgentUUID: uuid32,
 		RequestedCommand:     "list",

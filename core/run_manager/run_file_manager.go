@@ -1,4 +1,4 @@
-package corestate
+package run_manager
 
 import (
 	"context"
@@ -8,16 +8,16 @@ import (
 	"time"
 )
 
-func (r *RunManager) File(index string) RunFileManagerContract {
-	value, ok := (*r.indexedPaths)[index]
+func File(index string) RunFileManagerContract {
+	value, ok := indexedPaths[index]
 	if !ok {
-		err := r.indexPaths()
+		err := indexPaths()
 		if err != nil {
 			return &RunFileManager{
 				err: err,
 			}
 		}
-		value, ok = (*r.indexedPaths)[index]
+		value, ok = indexedPaths[index]
 		if !ok {
 			return &RunFileManager{
 				err: fmt.Errorf("cannot detect file under index %s", index),
@@ -45,21 +45,23 @@ func (r *RunFileManager) Close() error {
 	return r.file.Close()
 }
 
-func (r *RunFileManager) Watch(ctx context.Context, callback func()) error {
+func (r *RunFileManager) Watch(parentCtx context.Context, callback func()) (context.CancelFunc, error) {
 	if r.err != nil {
-		return r.err
+		return nil, r.err
 	}
 	if r.file == nil {
-		return fmt.Errorf("file is not opened")
+		return nil, fmt.Errorf("file is not opened")
 	}
 
 	info, err := r.file.Stat()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	origStat := info.Sys().(*syscall.Stat_t)
 	origIno := origStat.Ino
 	origModTime := info.ModTime()
+
+	ctx, cancel := context.WithCancel(parentCtx)
 
 	go func() {
 		for {
@@ -89,5 +91,5 @@ func (r *RunFileManager) Watch(ctx context.Context, callback func()) error {
 		}
 	}()
 
-	return nil
+	return cancel, nil
 }

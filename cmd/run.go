@@ -13,7 +13,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 	"syscall"
 	"time"
 
@@ -22,7 +21,9 @@ import (
 	"github.com/akyaiy/GoSally-mvp/core/corestate"
 	gs "github.com/akyaiy/GoSally-mvp/core/general_server"
 	"github.com/akyaiy/GoSally-mvp/core/logs"
+	"github.com/akyaiy/GoSally-mvp/core/run_manager"
 	"github.com/akyaiy/GoSally-mvp/core/sv1"
+	"github.com/akyaiy/GoSally-mvp/core/update"
 	"github.com/akyaiy/GoSally-mvp/core/utils"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
@@ -39,6 +40,7 @@ var runCmd = &cobra.Command{
 
 		nodeApp.InitialHooks(
 			func(cs *corestate.CoreState, x *app.AppX) {
+				x.Config = compositor
 				x.Log.SetOutput(os.Stdout)
 				x.Log.SetPrefix(logs.SetBrightBlack(fmt.Sprintf("(%s) ", cs.Stage)))
 				x.Log.SetFlags(log.Ldate | log.Ltime)
@@ -49,29 +51,27 @@ var runCmd = &cobra.Command{
 				*cs = *corestate.NewCorestate(&corestate.CoreState{
 					UUID32DirName:      "uuid",
 					NodeBinName:        filepath.Base(os.Args[0]),
-					NodeVersion:        config.GetUpdateConsts().GetNodeVersion(),
+					NodeVersion:        config.NodeVersion,
 					MetaDir:            "./.meta",
 					Stage:              corestate.StagePreInit,
-					RM:                 corestate.NewRM(),
 					StartTimestampUnix: time.Now().Unix(),
 				})
 			},
 
 			func(cs *corestate.CoreState, x *app.AppX) {
 				x.Log.SetPrefix(logs.SetBlue(fmt.Sprintf("(%s) ", cs.Stage)))
-				x.Config = config.NewCompositor()
+
 				if err := x.Config.LoadEnv(); err != nil {
 					x.Log.Fatalf("env load error: %s", err)
 				}
 				cs.NodePath = x.Config.Env.NodePath
 
-				if cfgPath := config.ConfigPath; cfgPath != "" {
+				if cfgPath := x.Config.CMDLine.Run.ConfigPath; cfgPath != "" {
 					x.Config.Env.ConfigPath = cfgPath
 				}
 				if err := x.Config.LoadConf(x.Config.Env.ConfigPath); err != nil {
 					x.Log.Fatalf("conf load error: %s", err)
 				}
-
 			},
 
 			func(cs *corestate.CoreState, x *app.AppX) {
@@ -92,63 +92,54 @@ var runCmd = &cobra.Command{
 			},
 
 			func(cs *corestate.CoreState, x *app.AppX) {
-				if x.Config.Env.ParentStagePID != os.Getpid() || x.Config.Env.ParentStagePID == -1 {
+				if x.Config.Env.ParentStagePID != os.Getpid() {
+					if os.TempDir() != "/tmp" {
+						x.Log.Printf("%s: %s", logs.SetYellow("warning"), "non-standard value specified for temporary directory")
+					}
 					// still pre-init stage
-					func(cs *corestate.CoreState, x *app.AppX) {
-						runDir, err := cs.RM.Create(cs.UUID32)
-						if err != nil {
-							x.Log.Fatalf("Unexpected failure: %s", err.Error())
-						}
-						cs.RunDir = runDir
-						input, err := os.Open(os.Args[0])
-						if err != nil {
-							cs.RM.Clean()
-							x.Log.Fatalf("Unexpected failure: %s", err.Error())
-						}
-						if err := cs.RM.Set(cs.NodeBinName); err != nil {
-							cs.RM.Clean()
-							x.Log.Fatalf("Unexpected failure: %s", err.Error())
-						}
-						fmgr := cs.RM.File(cs.NodeBinName)
-						output, err := fmgr.Open()
-						if err != nil {
-							cs.RM.Clean()
-							x.Log.Fatalf("Unexpected failure: %s", err.Error())
-						}
+					runDir, err := run_manager.Create(cs.UUID32)
+					if err != nil {
+						x.Log.Fatalf("Unexpected failure: %s", err.Error())
+					}
+					cs.RunDir = runDir
+					input, err := os.Open(os.Args[0])
+					if err != nil {
+						run_manager.Clean()
+						x.Log.Fatalf("Unexpected failure: %s", err.Error())
+					}
+					if err := run_manager.Set(cs.NodeBinName); err != nil {
+						run_manager.Clean()
+						x.Log.Fatalf("Unexpected failure: %s", err.Error())
+					}
+					fmgr := run_manager.File(cs.NodeBinName)
+					output, err := fmgr.Open()
+					if err != nil {
+						run_manager.Clean()
+						x.Log.Fatalf("Unexpected failure: %s", err.Error())
+					}
 
-						if _, err := io.Copy(output, input); err != nil {
-							fmgr.Close()
-							cs.RM.Clean()
-							x.Log.Fatalf("Unexpected failure: %s", err.Error())
-						}
-						if err := os.Chmod(filepath.Join(cs.RunDir, cs.NodeBinName), 0755); err != nil {
-							fmgr.Close()
-							cs.RM.Clean()
-							x.Log.Fatalf("Unexpected failure: %s", err.Error())
-						}
-						input.Close()
+					if _, err := io.Copy(output, input); err != nil {
 						fmgr.Close()
-						runArgs := os.Args
-						runArgs[0] = filepath.Join(cs.RunDir, cs.NodeBinName)
+						run_manager.Clean()
+						x.Log.Fatalf("Unexpected failure: %s", err.Error())
+					}
+					if err := os.Chmod(filepath.Join(cs.RunDir, cs.NodeBinName), 0755); err != nil {
+						fmgr.Close()
+						run_manager.Clean()
+						x.Log.Fatalf("Unexpected failure: %s", err.Error())
+					}
+					input.Close()
+					fmgr.Close()
+					runArgs := os.Args
+					runArgs[0] = filepath.Join(cs.RunDir, cs.NodeBinName)
 
-						// prepare environ
-						env := os.Environ()
+					// prepare environ
+					env := utils.SetEviron(os.Environ(), fmt.Sprintf("GS_PARENT_PID=%d", os.Getpid()))
 
-						var filtered []string
-						for _, e := range env {
-							if strings.HasPrefix(e, "GS_PARENT_PID=") {
-								if e != "GS_PARENT_PID=-1" {
-									continue
-								}
-							}
-							filtered = append(filtered, e)
-						}
-
-						if err := syscall.Exec(runArgs[0], runArgs, append(filtered, fmt.Sprintf("GS_PARENT_PID=%d", os.Getpid()))); err != nil {
-							cs.RM.Clean()
-							x.Log.Fatalf("Unexpected failure: %s", err.Error())
-						}
-					}(cs, x)
+					if err := syscall.Exec(runArgs[0], runArgs, env); err != nil {
+						run_manager.Clean()
+						x.Log.Fatalf("Unexpected failure: %s", err.Error())
+					}
 				}
 				x.Log.Printf("Node uuid is %s", cs.UUID32)
 			},
@@ -158,30 +149,30 @@ var runCmd = &cobra.Command{
 				cs.Stage = corestate.StagePostInit
 				x.Log.SetPrefix(logs.SetYellow(fmt.Sprintf("(%s) ", cs.Stage)))
 
-				cs.RunDir = cs.RM.Toggle()
+				cs.RunDir = run_manager.Toggle()
 				exist, err := utils.ExistsMatchingDirs(filepath.Join(os.TempDir(), fmt.Sprintf("/*-%s-%s", cs.UUID32, "gosally-runtime")), cs.RunDir)
 				if err != nil {
-					cs.RM.Clean()
+					run_manager.Clean()
 					x.Log.Fatalf("Unexpected failure: %s", err.Error())
 				}
 				if exist {
-					cs.RM.Clean()
+					run_manager.Clean()
 					x.Log.Fatalf("Unable to continue node operation: A node with the same identifier was found in the runtime environment")
 				}
 
-				if err := cs.RM.Set("run.lock"); err != nil {
-					cs.RM.Clean()
+				if err := run_manager.Set("run.lock"); err != nil {
+					run_manager.Clean()
 					x.Log.Fatalf("Unexpected failure: %s", err.Error())
 				}
-				lockPath, err := cs.RM.Get("run.lock")
+				lockPath, err := run_manager.Get("run.lock")
 				if err != nil {
-					cs.RM.Clean()
+					run_manager.Clean()
 					x.Log.Fatalf("Unexpected failure: %s", err.Error())
 				}
 				lockFile := ini.Empty()
 				secRun, err := lockFile.NewSection("runtime")
 				if err != nil {
-					cs.RM.Clean()
+					run_manager.Clean()
 					x.Log.Fatalf("Unexpected failure: %s", err.Error())
 				}
 				secRun.Key("pid").SetValue(fmt.Sprintf("%d/%d", os.Getpid(), x.Config.Env.ParentStagePID))
@@ -192,7 +183,7 @@ var runCmd = &cobra.Command{
 
 				err = lockFile.SaveTo(lockPath)
 				if err != nil {
-					cs.RM.Clean()
+					run_manager.Clean()
 					x.Log.Fatalf("Unexpected failure: %s", err.Error())
 				}
 			},
@@ -208,22 +199,20 @@ var runCmd = &cobra.Command{
 
 		nodeApp.Run(func(ctx context.Context, cs *corestate.CoreState, x *app.AppX) error {
 			ctxMain, cancelMain := context.WithCancel(ctx)
-			runLockFile := cs.RM.File("run.lock")
+			runLockFile := run_manager.File("run.lock")
 			_, err := runLockFile.Open()
 			if err != nil {
 				x.Log.Fatalf("cannot open run.lock: %s", err)
 			}
 
-			go func() {
-				err := runLockFile.Watch(ctxMain, func() {
-					x.Log.Printf("run.lock was touched")
-					cs.RM.Clean()
-					cancelMain()
-				})
-				if err != nil {
-					x.Log.Printf("watch error: %s", err)
-				}
-			}()
+			_, err = runLockFile.Watch(ctxMain, func() {
+				x.Log.Printf("run.lock was touched")
+				run_manager.Clean()
+				cancelMain()
+			})
+			if err != nil {
+				x.Log.Printf("watch error: %s", err)
+			}
 
 			serverv1 := sv1.InitV1Server(&sv1.HandlerV1InitStruct{
 				Log:            *x.SLog,
@@ -246,7 +235,7 @@ var runCmd = &cobra.Command{
 				AllowCredentials: true,
 				MaxAge:           300,
 			}))
-			r.Route(config.GetServerConsts().GetApiRoute()+config.GetServerConsts().GetComDirRoute(), func(r chi.Router) {
+			r.Route(config.ApiRoute+config.ComDirRoute, func(r chi.Router) {
 				r.Get("/", s.HandleList)
 				r.Get("/{cmd}", s.Handle)
 			})
@@ -285,27 +274,44 @@ var runCmd = &cobra.Command{
 						x.SLog.Error("Failed to start HTTP server", slog.String("error", err.Error()))
 					}
 				}
+				srv.Shutdown(ctxMain)
 			}()
 
-			if err := srv.Shutdown(ctxMain); err != nil {
-				x.Log.Printf("%s", fmt.Sprintf("Failed to shutdown server gracefully: %s", err.Error()))
-			} else {
-				x.Log.Printf("The server shut down successfully")
+			if x.Config.Conf.Updates.UpdatesEnabled {
+				go func() {
+					x.Updated = update.NewUpdater(ctxMain, x.Log, x.Config.Conf, x.Config.Env)
+					x.Updated.Shutdownfunc(cancelMain)
+					for {
+						isNewUpdate, err := x.Updated.CkeckUpdates()
+						if err != nil {
+							x.Log.Printf("Failed to check for updates: %s", err.Error())
+						}
+						if isNewUpdate {
+							if err := x.Updated.Update(); err != nil {
+								x.Log.Printf("Failed to update: %s", err.Error())
+							} else {
+								x.Log.Printf("Update completed successfully")
+							}
+						}
+						time.Sleep(x.Config.Conf.Updates.CheckInterval)
+					}
+				}()
 			}
 
 			<-ctxMain.Done()
+
 			x.Log.Println("cleaning up...")
 
-			if err := cs.RM.Clean(); err != nil {
+			if err := run_manager.Clean(); err != nil {
 				x.Log.Printf("cleanup error: %s", err)
 			}
 			x.Log.Println("bye!")
+
 			return nil
 		})
 	},
 }
 
 func init() {
-	runCmd.Flags().StringVarP(&config.ConfigPath, "config", "c", "./config.yaml", "Path to configuration file")
 	rootCmd.AddCommand(runCmd)
 }

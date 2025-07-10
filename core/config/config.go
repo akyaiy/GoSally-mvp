@@ -6,16 +6,15 @@ import (
 	"time"
 )
 
-var ConfigPath string
-
 type CompositorContract interface {
 	LoadEnv() error
 	LoadConf(path string) error
 }
 
 type Compositor struct {
-	Conf *Conf
-	Env  *Env
+	CMDLine *CMDLine
+	Conf    *Conf
+	Env     *Env
 }
 
 type Conf struct {
@@ -56,4 +55,18 @@ type Env struct {
 	ConfigPath     string `mapstructure:"config_path"`
 	NodePath       string `mapstructure:"node_path"`
 	ParentStagePID int    `mapstructure:"parent_pid"`
+}
+
+type CMDLine struct {
+	Run  Run
+	Node Root
+}
+
+type Root struct {
+	Debug bool `persistent:"true" full:"debug" short:"d" def:"false" desc:"Set debug mode"`
+}
+
+type Run struct {
+	ConfigPath string `persistent:"true" full:"config" short:"c" def:"./config.yaml" desc:"Path to configuration file"`
+	Test       []int  `persistent:"true" full:"test" short:"t" def:"" desc:"js test"`
 }

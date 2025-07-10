@@ -27,25 +27,8 @@ var UpdateDownloadPath string = os.TempDir()
 
 var MetaDir string = "./.meta"
 
-type _internalConsts struct{}
-type _serverConsts struct{}
-type _updateConsts struct{}
-
-func GetUpdateConsts() _updateConsts { return _updateConsts{} }
-func (_ _updateConsts) GetNodeVersion() string {
+func init() {
 	if NodeVersion == "" {
-		return "v0.0.0-none"
+		NodeVersion = "v0.0.0-none"
 	}
-	return NodeVersion
 }
-func (_ _updateConsts) GetActualFileName() string     { return ActualFileName }
-func (_ _updateConsts) GetUpdateArchiveName() string  { return UpdateArchiveName }
-func (_ _updateConsts) GetUpdateDownloadPath() string { return UpdateDownloadPath }
-
-func GetInternalConsts() _internalConsts     { return _internalConsts{} }
-func (_ _internalConsts) GetUUIDLength() int { return UUIDLength }
-func (_ _internalConsts) GetMetaDir() string { return MetaDir }
-
-func GetServerConsts() _serverConsts           { return _serverConsts{} }
-func (_ _serverConsts) GetApiRoute() string    { return ApiRoute }
-func (_ _serverConsts) GetComDirRoute() string { return ComDirRoute }

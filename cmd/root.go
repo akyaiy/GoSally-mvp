@@ -1,11 +1,17 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 	"os"
 
+	"github.com/akyaiy/GoSally-mvp/core/config"
+	"github.com/akyaiy/GoSally-mvp/core/corestate"
+	"github.com/akyaiy/GoSally-mvp/core/logs"
 	"github.com/spf13/cobra"
 )
+
+var compositor *config.Compositor = config.NewCompositor()
 
 var rootCmd = &cobra.Command{
 	Use:   "node",
@@ -18,9 +24,11 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	log.SetOutput(os.Stdout)
-	log.SetPrefix("\033[34m[INIT]\033[0m ")
+	log.SetPrefix(logs.SetBrightBlack(fmt.Sprintf("(%s) ", corestate.StageNotReady)))
 	log.SetFlags(log.Ldate | log.Ltime)
-	if err := rootCmd.Execute(); err != nil {
-		log.Fatalf("Unexpected error: %s", err.Error())
-	}
+	compositor.LoadCMDLine(rootCmd)
+	rootCmd.Execute()
+	// if err := rootCmd.Execute(); err != nil {
+	// 	log.Fatalf("Unexpected error: %s", err.Error())
+	// }
 }

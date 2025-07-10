@@ -16,19 +16,18 @@ The basic directory tree looks something like this
 │   ├── echo.lua
 │   ├── _globals.lua	Declaring global variables and functions for all internal scripts (also required for luarc to work correctly)
 │   └── _prepare.lua	Script that is executed before each script launch
-├── config.yaml
-└── Makefile
+└── config.yaml
 
 3 directories, 6 files
 
 ```
 Launch by command 
 ```bash
-./node run
+./bin/node run
 ```
 or for structured logs
 ```bash
-./node run | jq
+./bin/node run | jq
 ```
 
 Example of GET request to server

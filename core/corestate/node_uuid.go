@@ -28,7 +28,7 @@ func readNodeUUIDRaw(p string) ([]byte, error) {
 	if err != nil {
 		return data, err
 	}
-	if len(data) != config.GetInternalConsts().GetUUIDLength() {
+	if len(data) != config.UUIDLength {
 		return data, errors.New("decoded UUID length mismatch")
 	}
 	return data, nil

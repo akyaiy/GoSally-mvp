@@ -26,15 +26,15 @@ func NewUUID(length int) (string, error) {
 }
 
 func NewUUID32() (string, error) {
-	return NewUUID(config.GetInternalConsts().GetUUIDLength())
+	return NewUUID(config.UUIDLength)
 }
 
 func NewUUID32Raw() ([]byte, error) {
-	data, err := NewUUIDRaw(config.GetInternalConsts().GetUUIDLength())
+	data, err := NewUUIDRaw(config.UUIDLength)
 	if err != nil {
 		return data, err
 	}
-	if len(data) != config.GetInternalConsts().GetUUIDLength() {
+	if len(data) != config.UUIDLength {
 		return data, errors.New("unexpected UUID length")
 	}
 	return data, nil

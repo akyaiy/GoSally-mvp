@@ -18,7 +18,7 @@ import (
 // The function processes the HTTP request and runs Lua scripts,
 // preparing the environment and subsequently transmitting the execution result
 func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {
-	uuid16, err := utils.NewUUID(int(config.GetInternalConsts().GetUUIDLength()))
+	uuid16, err := utils.NewUUID(int(config.UUIDLength))
 	if err != nil {
 		h.log.Error("Failed to generate UUID",
 			slog.String("error", err.Error()))
@@ -127,7 +127,7 @@ func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {
 	resultTbl.ForEach(func(key lua.LValue, value lua.LValue) {
 		out[key.String()] = utils.ConvertLuaTypesToGolang(value)
 	})
-	uuid32, _ := corestate.GetNodeUUID(filepath.Join(config.GetInternalConsts().GetMetaDir(), "uuid"))
+	uuid32, _ := corestate.GetNodeUUID(filepath.Join(config.MetaDir, "uuid"))
 	response := ResponseFormat{
 		ResponsibleAgentUUID: uuid32,
 		RequestedCommand:     cmd,
