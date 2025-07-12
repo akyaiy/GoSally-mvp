@@ -19,3 +19,6 @@ func SetBrightBlue(s string) string    { return fmt.Sprintf("\033[94m%s\033[0m",
 func SetBrightMagenta(s string) string { return fmt.Sprintf("\033[95m%s\033[0m", s) }
 func SetBrightCyan(s string) string    { return fmt.Sprintf("\033[96m%s\033[0m", s) }
 func SetBrightWhite(s string) string   { return fmt.Sprintf("\033[97m%s\033[0m", s) }
+
+func PrintError() string { return SetRed("Error") }
+func PrintWarn() string  { return SetYellow("Warning") }
