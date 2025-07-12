@@ -45,7 +45,8 @@ func (c *Compositor) LoadConf(path string) error {
 	// defaults
 	v.SetDefault("mode", "dev")
 	v.SetDefault("com_dir", "./com/")
-	v.SetDefault("http_server.address", "0.0.0.0:8080")
+	v.SetDefault("http_server.address", "0.0.0.0")
+	v.SetDefault("http_server.port", "8080")
 	v.SetDefault("http_server.timeout", "5s")
 	v.SetDefault("http_server.idle_timeout", "60s")
 	v.SetDefault("tls.enabled", false)
@@ -54,6 +55,8 @@ func (c *Compositor) LoadConf(path string) error {
 	v.SetDefault("updates.enabled", false)
 	v.SetDefault("updates.check_interval", "2h")
 	v.SetDefault("updates.wanted_version", "latest-stable")
+	v.SetDefault("log.level", "info")
+	v.SetDefault("log.out_path", "")
 
 	if err := v.ReadInConfig(); err != nil {
 		return fmt.Errorf("error reading config: %w", err)

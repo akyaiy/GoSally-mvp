@@ -94,7 +94,7 @@ var runCmd = &cobra.Command{
 			func(cs *corestate.CoreState, x *app.AppX) {
 				if x.Config.Env.ParentStagePID != os.Getpid() {
 					if os.TempDir() != "/tmp" {
-						x.Log.Printf("%s: %s", logs.SetYellow("warning"), "non-standard value specified for temporary directory")
+						x.Log.Printf("%s: %s", logs.PrintWarn(), "Non-standard value specified for temporary directory")
 					}
 					// still pre-init stage
 					runDir, err := run_manager.Create(cs.UUID32)
@@ -193,7 +193,12 @@ var runCmd = &cobra.Command{
 				x.Log.SetPrefix(logs.SetGreen(fmt.Sprintf("(%s) ", cs.Stage)))
 
 				x.SLog = new(slog.Logger)
-				*x.SLog = *logs.SetupLogger(x.Config.Conf.Mode)
+				newSlog, err := logs.SetupLogger(x.Config.Conf.Log)
+				if err != nil {
+					_ = run_manager.Clean()
+					x.Log.Fatalf("Unexpected failure: %s", err.Error())
+				}
+				*x.SLog = *newSlog
 			},
 		)
 
@@ -223,7 +228,7 @@ var runCmd = &cobra.Command{
 			})
 
 			s := gs.InitGeneral(&gs.GeneralServerInit{
-				Log:    *x.SLog,
+				Log:    x.SLog,
 				Config: x.Config.Conf,
 			}, serverv1)
 
@@ -235,10 +240,7 @@ var runCmd = &cobra.Command{
 				AllowCredentials: true,
 				MaxAge:           300,
 			}))
-			r.Route(config.ApiRoute+config.ComDirRoute, func(r chi.Router) {
-				r.Get("/", s.HandleList)
-				r.Get("/{cmd}", s.Handle)
-			})
+			r.HandleFunc(config.ComDirRoute, s.Handle)
 			r.Route("/favicon.ico", func(r chi.Router) {
 				r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusNoContent)
@@ -248,33 +250,35 @@ var runCmd = &cobra.Command{
 			srv := &http.Server{
 				Addr:    x.Config.Conf.HTTPServer.Address,
 				Handler: r,
+				ErrorLog: log.New(&logs.SlogWriter{
+					Logger: x.SLog,
+					Level:  logs.GlobalLevel,
+				}, "", 0),
 			}
-
 			go func() {
 				if x.Config.Conf.TLS.TlsEnabled {
-					x.SLog.Info("HTTPS server started with TLS", slog.String("address", x.Config.Conf.HTTPServer.Address))
-					listener, err := net.Listen("tcp", x.Config.Conf.HTTPServer.Address)
+					listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port))
 					if err != nil {
-						x.SLog.Error("Failed to start TLS listener", slog.String("error", err.Error()))
+						x.Log.Printf("%s: Failed to start TLS listener: %s", logs.PrintError(), err.Error())
 						return
 					}
+					x.Log.Printf("Serving on %s port %s with TLS... (https://%s%s)", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port, fmt.Sprintf("%s:%s", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port), config.ComDirRoute)
 					limitedListener := netutil.LimitListener(listener, 100)
-					if err := http.ServeTLS(limitedListener, r, x.Config.Conf.TLS.CertFile, x.Config.Conf.TLS.KeyFile); err != nil {
-						x.SLog.Error("Failed to start HTTPS server", slog.String("error", err.Error()))
+					if err := srv.ServeTLS(limitedListener, x.Config.Conf.TLS.CertFile, x.Config.Conf.TLS.KeyFile); err != nil && !errors.Is(err, http.ErrServerClosed) {
+						x.Log.Printf("%s: Failed to start HTTPS server: %s", logs.PrintError(), err.Error())
 					}
 				} else {
-					x.SLog.Info("HTTP server started", slog.String("address", x.Config.Conf.HTTPServer.Address))
-					listener, err := net.Listen("tcp", x.Config.Conf.HTTPServer.Address)
+					x.Log.Printf("Serving on %s port %s... (http://%s%s)", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port, fmt.Sprintf("%s:%s", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port), config.ComDirRoute)
+					listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port))
 					if err != nil {
-						x.SLog.Error("Failed to start listener", slog.String("error", err.Error()))
+						x.Log.Printf("%s: Failed to start listener: %s", logs.PrintError(), err.Error())
 						return
 					}
 					limitedListener := netutil.LimitListener(listener, 100)
-					if err := http.Serve(limitedListener, r); err != nil {
-						x.SLog.Error("Failed to start HTTP server", slog.String("error", err.Error()))
+					if err := srv.Serve(limitedListener); err != nil && !errors.Is(err, http.ErrServerClosed) {
+						x.Log.Printf("%s: Failed to start HTTP server: %s", logs.PrintError(), err.Error())
 					}
 				}
-				_ = srv.Shutdown(ctxMain)
 			}()
 
 			if x.Config.Conf.Updates.UpdatesEnabled {
@@ -299,11 +303,16 @@ var runCmd = &cobra.Command{
 			}
 
 			<-ctxMain.Done()
+			if err := srv.Shutdown(ctxMain); err != nil {
+				x.Log.Printf("%s: Failed to stop the server gracefully: %s", logs.PrintError(), err.Error())
+			} else {
+				x.Log.Printf("Server stopped gracefully")
+			}
 
-			x.Log.Println("cleaning up...")
+			x.Log.Println("Cleaning up...")
 
 			if err := run_manager.Clean(); err != nil {
-				x.Log.Printf("cleanup error: %s", err)
+				x.Log.Printf("%s: Cleanup error: %s", logs.PrintError(), err.Error())
 			}
 			x.Log.Println("bye!")
 

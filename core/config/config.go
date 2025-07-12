@@ -23,10 +23,12 @@ type Conf struct {
 	HTTPServer HTTPServer `mapstructure:"http_server"`
 	TLS        TLS        `mapstructure:"tls"`
 	Updates    Updates    `mapstructure:"updates"`
+	Log        Log        `mapstructure:"log"`
 }
 
 type HTTPServer struct {
 	Address        string         `mapstructure:"address"`
+	Port           string         `mapstructure:"port"`
 	Timeout        time.Duration  `mapstructure:"timeout"`
 	IdleTimeout    time.Duration  `mapstructure:"idle_timeout"`
 	HTTPServer_Api HTTPServer_Api `mapstructure:"api"`
@@ -48,6 +50,11 @@ type Updates struct {
 	CheckInterval  time.Duration `mapstructure:"check_interval"`
 	RepositoryURL  string        `mapstructure:"repository_url"`
 	WantedVersion  string        `mapstructure:"wanted_version"`
+}
+
+type Log struct {
+	Level   string `mapstructure:"level"`
+	OutPath string `mapstructure:"out_path"`
 }
 
 // ConfigEnv structure for environment variables
