@@ -10,6 +10,169 @@ import (
 	"github.com/akyaiy/GoSally-mvp/core/config"
 	"github.com/akyaiy/GoSally-mvp/core/corestate"
 	"github.com/akyaiy/GoSally-mvp/core/utils"
+	lua "github.com/yuin/gopher-lua"
+)
+
+
+
+// func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {
+// 	var req PettiRequest
+// 	// server, ok := s.servers[serversApiVer(payload.PettiVer)]
+// 	// if !ok {
+// 	// 	WriteRouterError(w, &RouterError{
+// 	// 		Status:     "error",
+// 	// 		StatusCode: http.StatusBadRequest,
+// 	// 		Payload: map[string]any{
+// 	// 			"Message": InvalidProtovolVersion,
+// 	// 		},
+// 	// 	})
+// 	// 	s.log.Info("invalid request received", slog.String("issue", InvalidProtovolVersion), slog.String("requested-version", payload.PettiVer))
+// 	// 	return
+// 	// }
+// 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+// 		utils.WriteJSONError(w, http.StatusBadRequest, "невалидный JSON: "+err.Error())
+// 		return
+// 	}
+
+// 	if req.PettiVer == "" {
+// 		utils.WriteJSONError(w, http.StatusBadRequest, "отсутствует PettiVer")
+// 		return
+// 	}
+// 	if req.PettiVer != h.GetVersion() {
+// 		utils.WriteJSONError(w, http.StatusBadRequest, "неподдерживаемая версия PettiVer")
+// 		return
+// 	}
+// 	if req.PackageType.Request == "" {
+// 		utils.WriteJSONError(w, http.StatusBadRequest, "отсутствует PackageType.Request")
+// 		return
+// 	}
+// 	if req.Payload == nil {
+// 		utils.WriteJSONError(w, http.StatusBadRequest, "отсутствует Payload")
+// 		return
+// 	}
+// 	cmdRaw, ok := req.Payload["Exec"].(string)
+// 	if !ok || cmdRaw == "" {
+// 		utils.WriteJSONError(w, http.StatusBadRequest, "Payload.Exec отсутствует или некорректен")
+// 		return
+// 	}
+// 	cmd := cmdRaw
+
+// 	if !h.allowedCmd.MatchString(string([]rune(cmd)[0])) || !h.listAllowedCmd.MatchString(cmd) {
+// 		utils.WriteJSONError(w, http.StatusBadRequest, "команда запрещена")
+// 		return
+// 	}
+
+// 	// ===== Проверка скрипта
+// 	scriptPath := h.comMatch(h.GetVersion(), cmd)
+// 	if scriptPath == "" {
+// 		utils.WriteJSONError(w, http.StatusNotFound, "команда не найдена")
+// 		return
+// 	}
+// 	fullPath := filepath.Join(h.cfg.ComDir, scriptPath)
+// 	if _, err := os.Stat(fullPath); err != nil {
+// 		utils.WriteJSONError(w, http.StatusNotFound, "файл команды не найден")
+// 		return
+// 	}
+
+// 	// ===== Запуск Lua
+// 	L := lua.NewState()
+// 	defer L.Close()
+
+// 	inTable := L.NewTable()
+// 	paramsTable := L.NewTable()
+// 	if params, ok := req.Payload["PassedParameters"].(map[string]interface{}); ok {
+// 		for k, v := range params {
+// 			L.SetField(paramsTable, k, utils.ConvertGolangTypesToLua(L, v))
+// 		}
+// 	}
+// 	L.SetField(inTable, "Params", paramsTable)
+// 	L.SetGlobal("In", inTable)
+
+// 	resultTable := L.NewTable()
+// 	outTable := L.NewTable()
+// 	L.SetField(outTable, "Result", resultTable)
+// 	L.SetGlobal("Out", outTable)
+
+// 	prepareLua := filepath.Join(h.cfg.ComDir, "_prepare.lua")
+// 	if _, err := os.Stat(prepareLua); err == nil {
+// 		if err := L.DoFile(prepareLua); err != nil {
+// 			utils.WriteJSONError(w, http.StatusInternalServerError, "lua _prepare ошибка: "+err.Error())
+// 			return
+// 		}
+// 	}
+// 	if err := L.DoFile(fullPath); err != nil {
+// 		utils.WriteJSONError(w, http.StatusInternalServerError, "lua exec ошибка: "+err.Error())
+// 		return
+// 	}
+
+// 	lv := L.GetGlobal("Out")
+// 	tbl, ok := lv.(*lua.LTable)
+// 	if !ok {
+// 		utils.WriteJSONError(w, http.StatusInternalServerError, "'Out' не таблица")
+// 		return
+// 	}
+// 	resultVal := tbl.RawGetString("Result")
+// 	resultTbl, ok := resultVal.(*lua.LTable)
+// 	if !ok {
+// 		utils.WriteJSONError(w, http.StatusInternalServerError, "'Result' не таблица")
+// 		return
+// 	}
+
+// 	out := make(map[string]any)
+// 	resultTbl.ForEach(func(key lua.LValue, value lua.LValue) {
+// 		out[key.String()] = utils.ConvertLuaTypesToGolang(value)
+// 	})
+
+// 	uuid32, _ := corestate.GetNodeUUID(filepath.Join(config.MetaDir, "uuid"))
+
+// 	resp := PettiResponse{
+// 		PettiVer:             req.PettiVer,
+// 		ResponsibleAgentUUID: uuid32,
+// 		PackageType: struct {
+// 			AnswerOf string `json:"AnswerOf"`
+// 		}{AnswerOf: req.PackageType.Request},
+// 		Payload: map[string]any{
+// 			"RequestedCommand": cmd,
+// 			"Response":         out,
+// 		},
+// 	}
+
+// 	// ===== Финальная проверка на сериализацию (валидность сборки)
+// 	respData, err := json.Marshal(resp)
+// 	if err != nil {
+// 		utils.WriteJSONError(w, http.StatusInternalServerError, "внутренняя ошибка: пакет невалиден")
+// 		return
+// 	}
+
+// 	w.Header().Set("Content-Type", "application/json")
+// 	w.WriteHeader(http.StatusOK)
+// 	if _, err := w.Write(respData); err != nil {
+// 		h.log.Error("Ошибка при отправке JSON", slog.String("err", err.Error()))
+// 	}
+
+// 	// ===== Логгирование статуса
+// 	status, _ := out["status"].(string)
+// 	switch status {
+// 	case "ok":
+// 		h.log.Info("Успешно", slog.String("cmd", cmd), slog.Any("out", out))
+// 	case "error":
+// 		h.log.Warn("Ошибка в команде", slog.String("cmd", cmd), slog.Any("out", out))
+// 	default:
+// 		h.log.Info("Неизвестный статус", slog.String("cmd", cmd), slog.Any("out", out))
+// 	}
+// }
+
+/*
+import (
+	"encoding/json"
+	"log/slog"
+	"net/http"
+	"os"
+	"path/filepath"
+
+	"github.com/akyaiy/GoSally-mvp/core/config"
+	"github.com/akyaiy/GoSally-mvp/core/corestate"
+	"github.com/akyaiy/GoSally-mvp/core/utils"
 	"github.com/go-chi/chi/v5"
 	lua "github.com/yuin/gopher-lua"
 )
@@ -181,3 +344,4 @@ func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("Session completed")
 }
+*/

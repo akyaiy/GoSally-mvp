@@ -32,6 +32,15 @@ import (
 	"gopkg.in/ini.v1"
 )
 
+func contains(slice []string, item string) bool {
+    for _, v := range slice {
+        if v == item {
+            return true
+        }
+    }
+    return false
+}
+
 var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run node normally",
@@ -93,7 +102,7 @@ var runCmd = &cobra.Command{
 
 			func(cs *corestate.CoreState, x *app.AppX) {
 				if x.Config.Env.ParentStagePID != os.Getpid() {
-					if os.TempDir() != "/tmp" {
+					if !contains(x.Config.Conf.DisableWarnings, "--WNonStdTmpDir") && os.TempDir() != "/tmp" {
 						x.Log.Printf("%s: %s", logs.PrintWarn(), "Non-standard value specified for temporary directory")
 					}
 					// still pre-init stage
@@ -260,23 +269,27 @@ var runCmd = &cobra.Command{
 					listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port))
 					if err != nil {
 						x.Log.Printf("%s: Failed to start TLS listener: %s", logs.PrintError(), err.Error())
+						cancelMain()
 						return
 					}
 					x.Log.Printf("Serving on %s port %s with TLS... (https://%s%s)", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port, fmt.Sprintf("%s:%s", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port), config.ComDirRoute)
 					limitedListener := netutil.LimitListener(listener, 100)
 					if err := srv.ServeTLS(limitedListener, x.Config.Conf.TLS.CertFile, x.Config.Conf.TLS.KeyFile); err != nil && !errors.Is(err, http.ErrServerClosed) {
 						x.Log.Printf("%s: Failed to start HTTPS server: %s", logs.PrintError(), err.Error())
+						cancelMain()
 					}
 				} else {
 					x.Log.Printf("Serving on %s port %s... (http://%s%s)", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port, fmt.Sprintf("%s:%s", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port), config.ComDirRoute)
 					listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port))
 					if err != nil {
 						x.Log.Printf("%s: Failed to start listener: %s", logs.PrintError(), err.Error())
+						cancelMain()
 						return
 					}
 					limitedListener := netutil.LimitListener(listener, 100)
 					if err := srv.Serve(limitedListener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 						x.Log.Printf("%s: Failed to start HTTP server: %s", logs.PrintError(), err.Error())
+						cancelMain()
 					}
 				}
 			}()

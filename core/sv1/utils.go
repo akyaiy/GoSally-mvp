@@ -3,7 +3,6 @@ package sv1
 import (
 	"log/slog"
 	"os"
-	"regexp"
 )
 
 // func (h *HandlerV1) errNotFound(w http.ResponseWriter, r *http.Request) {
@@ -15,19 +14,19 @@ import (
 // 		slog.Int("status", http.StatusBadRequest))
 // }
 
-func (h *HandlerV1) extractDescriptionStatic(path string) (string, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return "", err
-	}
+// func (h *HandlerV1) extractDescriptionStatic(path string) (string, error) {
+// 	data, err := os.ReadFile(path)
+// 	if err != nil {
+// 		return "", err
+// 	}
 
-	re := regexp.MustCompile(`---\s*#description\s*=\s*"([^"]+)"`)
-	m := re.FindStringSubmatch(string(data))
-	if len(m) <= 0 {
-		return "", nil
-	}
-	return m[1], nil
-}
+// 	re := regexp.MustCompile(`---\s*#description\s*=\s*"([^"]+)"`)
+// 	m := re.FindStringSubmatch(string(data))
+// 	if len(m) <= 0 {
+// 		return "", nil
+// 	}
+// 	return m[1], nil
+// }
 
 func (h *HandlerV1) comMatch(ver string, comName string) string {
 	files, err := os.ReadDir(h.cfg.ComDir)

@@ -14,20 +14,19 @@
 package general_server
 
 import (
+	"encoding/json"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
-	"slices"
 
 	"github.com/akyaiy/GoSally-mvp/core/config"
-	"github.com/akyaiy/GoSally-mvp/core/utils"
-
-	"github.com/go-chi/chi/v5"
 )
 
 // serversApiVer is a type alias for string, used to represent API version strings in the GeneralServer.
 type serversApiVer string
 
+/*
 // GeneralServerApiContract defines the interface for servers that can be registered
 type GeneralServerApiContract interface {
 	// GetVersion returns the API version of the server.
@@ -37,9 +36,13 @@ type GeneralServerApiContract interface {
 	Handle(w http.ResponseWriter, r *http.Request)
 	HandleList(w http.ResponseWriter, r *http.Request)
 }
+*/
 
-// GeneralServerContarct extends the GeneralServerApiContract with a method to append new servers.
-// This interface is only for general server initialization and does not need to be implemented by individual servers.
+type GeneralServerApiContract interface {
+	GetVersion() string
+	Handle(w http.ResponseWriter, r *http.Request)
+}
+
 type GeneralServerContarct interface {
 	GeneralServerApiContract
 	// AppendToArray adds a new server to the GeneralServer's internal map.
@@ -61,7 +64,7 @@ type GeneralServer struct {
 
 // GeneralServerInit structure only for initialization general server.
 type GeneralServerInit struct {
-	Log    slog.Logger
+	Log    *slog.Logger
 	Config *config.Conf
 }
 
@@ -70,7 +73,7 @@ func InitGeneral(o *GeneralServerInit, servers ...GeneralServerApiContract) *Gen
 	general := &GeneralServer{
 		servers: make(map[serversApiVer]GeneralServerApiContract),
 		cfg:     o.Config,
-		log:     o.Log,
+		log:     *o.Log,
 	}
 
 	// register the provided servers
@@ -95,6 +98,62 @@ func (s *GeneralServer) AppendToArray(server GeneralServerApiContract) error {
 	return errors.New("server with this version is already exist")
 }
 
+func (s *GeneralServer) Handle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteRouterError(w, &RouterError{
+			Status:     "error",
+			StatusCode: http.StatusBadRequest,
+			Payload: map[string]any{
+				"Message": IssueMethod,
+			},
+		})
+		s.log.Info("invalid request received", slog.String("issue", IssueMethod), slog.String("requested-method", r.Method))
+		return
+	}
+	var payload RawPettiEnvelope
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		WriteRouterError(w, &RouterError{
+			Status:     "error",
+			StatusCode: http.StatusBadRequest,
+			Payload: map[string]any{
+				"Message": IssueToReadBody,
+			},
+		})
+		s.log.Info("invalid request received", slog.String("issue", IssueToReadBody))
+		return
+	}
+
+	if err := json.Unmarshal(body, &payload); err != nil {
+		WriteRouterError(w, &RouterError{
+			Status:     "error",
+			StatusCode: http.StatusBadRequest,
+			Payload: map[string]any{
+				"Message": InvalidProtocol,
+			},
+		})
+		s.log.Info("invalid request received", slog.String("issue", InvalidProtocol))
+		return
+	}
+
+	server, ok := s.servers[serversApiVer(payload.PettiVer)]
+	if !ok {
+		WriteRouterError(w, &RouterError{
+			Status:     "error",
+			StatusCode: http.StatusBadRequest,
+			Payload: map[string]any{
+				"Message": InvalidProtovolVersion,
+			},
+		})
+		s.log.Info("invalid request received", slog.String("issue", InvalidProtovolVersion), slog.String("requested-version", payload.PettiVer))
+		return
+	}
+
+	server.Handle(w, r)
+}
+
+/*
 // Handle processes incoming HTTP requests, routing them to the appropriate server based on the API version.
 // It checks if the requested version is registered and handles the request accordingly.
 func (s *GeneralServer) Handle(w http.ResponseWriter, r *http.Request) {
@@ -188,3 +247,4 @@ func (s *GeneralServer) HandleList(w http.ResponseWriter, r *http.Request) {
 		s.log.Error("Failed to write JSON", slog.String("err", err.Error()))
 	}
 }
+*/

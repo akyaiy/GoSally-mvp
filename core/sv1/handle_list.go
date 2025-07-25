@@ -1,5 +1,6 @@
 package sv1
 
+/*
 import (
 	"encoding/json"
 	"log/slog"
@@ -129,3 +130,4 @@ func (h *HandlerV1) HandleList(w http.ResponseWriter, r *http.Request) {
 			slog.String("error", err.Error()))
 	}
 }
+*/

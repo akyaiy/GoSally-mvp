@@ -24,6 +24,7 @@ type Conf struct {
 	TLS        TLS        `mapstructure:"tls"`
 	Updates    Updates    `mapstructure:"updates"`
 	Log        Log        `mapstructure:"log"`
+	DisableWarnings []string `mapstructure:"disable_warnings"`
 }
 
 type HTTPServer struct {
