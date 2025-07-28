@@ -16,15 +16,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/akyaiy/GoSally-mvp/core/app"
-	"github.com/akyaiy/GoSally-mvp/core/config"
-	"github.com/akyaiy/GoSally-mvp/core/corestate"
-	gs "github.com/akyaiy/GoSally-mvp/core/general_server"
-	"github.com/akyaiy/GoSally-mvp/core/logs"
-	"github.com/akyaiy/GoSally-mvp/core/run_manager"
-	"github.com/akyaiy/GoSally-mvp/core/sv1"
-	"github.com/akyaiy/GoSally-mvp/core/update"
-	"github.com/akyaiy/GoSally-mvp/core/utils"
+	"github.com/akyaiy/GoSally-mvp/internal/core/corestate"
+	"github.com/akyaiy/GoSally-mvp/internal/core/run_manager"
+	"github.com/akyaiy/GoSally-mvp/internal/core/update"
+	"github.com/akyaiy/GoSally-mvp/internal/core/utils"
+	"github.com/akyaiy/GoSally-mvp/internal/engine/app"
+	"github.com/akyaiy/GoSally-mvp/internal/engine/config"
+	"github.com/akyaiy/GoSally-mvp/internal/engine/logs"
+	"github.com/akyaiy/GoSally-mvp/internal/server/gateway"
+	"github.com/akyaiy/GoSally-mvp/internal/server/sv1"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
 	"github.com/spf13/cobra"
@@ -33,12 +33,12 @@ import (
 )
 
 func contains(slice []string, item string) bool {
-    for _, v := range slice {
-        if v == item {
-            return true
-        }
-    }
-    return false
+	for _, v := range slice {
+		if v == item {
+			return true
+		}
+	}
+	return false
 }
 
 var runCmd = &cobra.Command{
@@ -236,7 +236,7 @@ var runCmd = &cobra.Command{
 				Ver:            "v1",
 			})
 
-			s := gs.InitGeneral(&gs.GeneralServerInit{
+			s := gateway.InitGateway(&gateway.GatewayServerInit{
 				Log:    x.SLog,
 				Config: x.Config.Conf,
 			}, serverv1)
