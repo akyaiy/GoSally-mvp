@@ -7,7 +7,11 @@ import (
 )
 
 func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request, req rpc.RPCRequest) {
-	w.Write([]byte("Sigmas"))
+	rpc.WriteResponse(w, &rpc.RPCResponse{
+		JSONRPC: rpc.JSONRPCVersion,
+		ID:      req.ID,
+		Result:  "Hi",
+	}) // test answer to make sure everything works
 }
 
 // func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {
