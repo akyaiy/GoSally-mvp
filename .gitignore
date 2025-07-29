@@ -4,5 +4,6 @@ cert/
 tmp/
 .meta/
 .vscode
+Taskfile.yml
 
 config.yaml

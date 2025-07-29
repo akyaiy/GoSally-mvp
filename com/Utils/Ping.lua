@@ -1,0 +1,1 @@
+Out.Result.answer = "pong"

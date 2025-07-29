@@ -16,21 +16,30 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/akyaiy/GoSally-mvp/core/app"
-	"github.com/akyaiy/GoSally-mvp/core/config"
-	"github.com/akyaiy/GoSally-mvp/core/corestate"
-	gs "github.com/akyaiy/GoSally-mvp/core/general_server"
-	"github.com/akyaiy/GoSally-mvp/core/logs"
-	"github.com/akyaiy/GoSally-mvp/core/run_manager"
-	"github.com/akyaiy/GoSally-mvp/core/sv1"
-	"github.com/akyaiy/GoSally-mvp/core/update"
-	"github.com/akyaiy/GoSally-mvp/core/utils"
+	"github.com/akyaiy/GoSally-mvp/internal/core/corestate"
+	"github.com/akyaiy/GoSally-mvp/internal/core/run_manager"
+	"github.com/akyaiy/GoSally-mvp/internal/core/update"
+	"github.com/akyaiy/GoSally-mvp/internal/core/utils"
+	"github.com/akyaiy/GoSally-mvp/internal/engine/app"
+	"github.com/akyaiy/GoSally-mvp/internal/engine/config"
+	"github.com/akyaiy/GoSally-mvp/internal/engine/logs"
+	"github.com/akyaiy/GoSally-mvp/internal/server/gateway"
+	"github.com/akyaiy/GoSally-mvp/internal/server/sv1"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/netutil"
 	"gopkg.in/ini.v1"
 )
+
+func contains(slice []string, item string) bool {
+	for _, v := range slice {
+		if v == item {
+			return true
+		}
+	}
+	return false
+}
 
 var runCmd = &cobra.Command{
 	Use:   "run",
@@ -93,7 +102,7 @@ var runCmd = &cobra.Command{
 
 			func(cs *corestate.CoreState, x *app.AppX) {
 				if x.Config.Env.ParentStagePID != os.Getpid() {
-					if os.TempDir() != "/tmp" {
+					if !contains(x.Config.Conf.DisableWarnings, "--WNonStdTmpDir") && os.TempDir() != "/tmp" {
 						x.Log.Printf("%s: %s", logs.PrintWarn(), "Non-standard value specified for temporary directory")
 					}
 					// still pre-init stage
@@ -220,14 +229,13 @@ var runCmd = &cobra.Command{
 			}
 
 			serverv1 := sv1.InitV1Server(&sv1.HandlerV1InitStruct{
-				Log:            *x.SLog,
-				Config:         x.Config.Conf,
-				AllowedCmd:     regexp.MustCompile(`^[a-zA-Z0-9]+$`),
-				ListAllowedCmd: regexp.MustCompile(`^[a-zA-Z0-9_-]+$`),
-				Ver:            "v1",
+				Log:        *x.SLog,
+				Config:     x.Config.Conf,
+				AllowedCmd: regexp.MustCompile(`^[a-zA-Z0-9]+(>[a-zA-Z0-9]+)*$`),
+				Ver:        "v1",
 			})
 
-			s := gs.InitGeneral(&gs.GeneralServerInit{
+			s := gateway.InitGateway(&gateway.GatewayServerInit{
 				Log:    x.SLog,
 				Config: x.Config.Conf,
 			}, serverv1)
@@ -255,34 +263,56 @@ var runCmd = &cobra.Command{
 					Level:  logs.GlobalLevel,
 				}, "", 0),
 			}
+
+			nodeApp.Fallback(func(ctx context.Context, cs *corestate.CoreState, x *app.AppX) {
+				if err := srv.Shutdown(ctxMain); err != nil {
+					x.Log.Printf("%s: Failed to stop the server gracefully: %s", logs.PrintError(), err.Error())
+				} else {
+					x.Log.Printf("Server stopped gracefully")
+				}
+
+				x.Log.Println("Cleaning up...")
+
+				if err := run_manager.Clean(); err != nil {
+					x.Log.Printf("%s: Cleanup error: %s", logs.PrintError(), err.Error())
+				}
+				x.Log.Println("bye!")
+			})
+
 			go func() {
+				defer utils.CatchPanicWithCancel(cancelMain)
 				if x.Config.Conf.TLS.TlsEnabled {
 					listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port))
 					if err != nil {
 						x.Log.Printf("%s: Failed to start TLS listener: %s", logs.PrintError(), err.Error())
+						cancelMain()
 						return
 					}
 					x.Log.Printf("Serving on %s port %s with TLS... (https://%s%s)", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port, fmt.Sprintf("%s:%s", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port), config.ComDirRoute)
 					limitedListener := netutil.LimitListener(listener, 100)
 					if err := srv.ServeTLS(limitedListener, x.Config.Conf.TLS.CertFile, x.Config.Conf.TLS.KeyFile); err != nil && !errors.Is(err, http.ErrServerClosed) {
 						x.Log.Printf("%s: Failed to start HTTPS server: %s", logs.PrintError(), err.Error())
+						cancelMain()
 					}
 				} else {
 					x.Log.Printf("Serving on %s port %s... (http://%s%s)", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port, fmt.Sprintf("%s:%s", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port), config.ComDirRoute)
 					listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port))
 					if err != nil {
 						x.Log.Printf("%s: Failed to start listener: %s", logs.PrintError(), err.Error())
+						cancelMain()
 						return
 					}
 					limitedListener := netutil.LimitListener(listener, 100)
 					if err := srv.Serve(limitedListener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 						x.Log.Printf("%s: Failed to start HTTP server: %s", logs.PrintError(), err.Error())
+						cancelMain()
 					}
 				}
 			}()
 
 			if x.Config.Conf.Updates.UpdatesEnabled {
 				go func() {
+					defer utils.CatchPanicWithCancel(cancelMain)
 					x.Updated = update.NewUpdater(ctxMain, x.Log, x.Config.Conf, x.Config.Env)
 					x.Updated.Shutdownfunc(cancelMain)
 					for {
@@ -303,19 +333,7 @@ var runCmd = &cobra.Command{
 			}
 
 			<-ctxMain.Done()
-			if err := srv.Shutdown(ctxMain); err != nil {
-				x.Log.Printf("%s: Failed to stop the server gracefully: %s", logs.PrintError(), err.Error())
-			} else {
-				x.Log.Printf("Server stopped gracefully")
-			}
-
-			x.Log.Println("Cleaning up...")
-
-			if err := run_manager.Clean(); err != nil {
-				x.Log.Printf("%s: Cleanup error: %s", logs.PrintError(), err.Error())
-			}
-			x.Log.Println("bye!")
-
+			nodeApp.CallFallback(ctx)
 			return nil
 		})
 	},

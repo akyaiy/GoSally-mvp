@@ -5,9 +5,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/akyaiy/GoSally-mvp/core/config"
-	"github.com/akyaiy/GoSally-mvp/core/corestate"
-	"github.com/akyaiy/GoSally-mvp/core/logs"
+	"github.com/akyaiy/GoSally-mvp/internal/core/corestate"
+	"github.com/akyaiy/GoSally-mvp/internal/engine/config"
+	"github.com/akyaiy/GoSally-mvp/internal/engine/logs"
 	"github.com/spf13/cobra"
 )
 
