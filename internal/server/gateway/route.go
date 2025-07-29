@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/akyaiy/GoSally-mvp/internal/core/utils"
 	"github.com/akyaiy/GoSally-mvp/internal/server/rpc"
 )
 
@@ -75,7 +76,11 @@ func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (gs *GatewayServer) Route(r *http.Request, req *rpc.RPCRequest) *rpc.RPCResponse {
+func (gs *GatewayServer) Route(r *http.Request, req *rpc.RPCRequest) (resp *rpc.RPCResponse) {
+	defer utils.CatchPanicWithFallback(func(rec any) {
+		gs.log.Error("panic caught in handler", slog.Any("error", rec))
+		resp = rpc.NewError(rpc.ErrInternalError, "Internal server error (panic)", req.ID)
+	})
 	if req.JSONRPC != rpc.JSONRPCVersion {
 		gs.log.Info("invalid request received", slog.String("issue", rpc.ErrInvalidRequestS), slog.String("requested-version", req.JSONRPC))
 		return rpc.NewError(rpc.ErrInvalidRequest, rpc.ErrInvalidRequestS, req.ID)
@@ -87,7 +92,7 @@ func (gs *GatewayServer) Route(r *http.Request, req *rpc.RPCRequest) *rpc.RPCRes
 		return rpc.NewError(rpc.ErrContextVersion, rpc.ErrContextVersionS, req.ID)
 	}
 
-	resp := server.Handle(r, req)
+	resp = server.Handle(r, req)
 	// checks if request is notification
 	if req.ID == nil {
 		return nil
