@@ -314,21 +314,23 @@ var runCmd = &cobra.Command{
 					}
 				}()
 			}
+			nodeApp.Fallback(func(ctx context.Context, cs *corestate.CoreState, x *app.AppX) {
+				if err := srv.Shutdown(ctxMain); err != nil {
+					x.Log.Printf("%s: Failed to stop the server gracefully: %s", logs.PrintError(), err.Error())
+				} else {
+					x.Log.Printf("Server stopped gracefully")
+				}
+
+				x.Log.Println("Cleaning up...")
+
+				if err := run_manager.Clean(); err != nil {
+					x.Log.Printf("%s: Cleanup error: %s", logs.PrintError(), err.Error())
+				}
+				x.Log.Println("bye!")
+			})
 
 			<-ctxMain.Done()
-			if err := srv.Shutdown(ctxMain); err != nil {
-				x.Log.Printf("%s: Failed to stop the server gracefully: %s", logs.PrintError(), err.Error())
-			} else {
-				x.Log.Printf("Server stopped gracefully")
-			}
-
-			x.Log.Println("Cleaning up...")
-
-			if err := run_manager.Clean(); err != nil {
-				x.Log.Printf("%s: Cleanup error: %s", logs.PrintError(), err.Error())
-			}
-			x.Log.Println("bye!")
-
+			nodeApp.CallFallback(ctx)
 			return nil
 		})
 	},
