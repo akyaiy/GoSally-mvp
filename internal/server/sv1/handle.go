@@ -6,12 +6,8 @@ import (
 	"github.com/akyaiy/GoSally-mvp/internal/server/rpc"
 )
 
-func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request, req rpc.RPCRequest) {
-	rpc.WriteResponse(w, &rpc.RPCResponse{
-		JSONRPC: rpc.JSONRPCVersion,
-		ID:      req.ID,
-		Result:  "Hi",
-	}) // test answer to make sure everything works
+func (h *HandlerV1) Handle(r *http.Request, req *rpc.RPCRequest) *rpc.RPCResponse {
+	return rpc.NewResponse("Hi", req.ID) // test answer to make sure everything works
 }
 
 // func (h *HandlerV1) Handle(w http.ResponseWriter, r *http.Request) {
