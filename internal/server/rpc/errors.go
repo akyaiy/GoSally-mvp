@@ -18,4 +18,10 @@ const (
 
 	ErrContextVersion  = -32010
 	ErrContextVersionS = "Invalid context version"
+
+	ErrInvalidMethodFormat  = -32020
+	ErrInvalidMethodFormatS = "Invalid method format"
+
+	ErrMethodIsMissing  = -32020
+	ErrMethodIsMissingS = "Method is missing"
 )
