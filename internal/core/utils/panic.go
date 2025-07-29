@@ -39,13 +39,22 @@ func CatchPanic() {
 	}
 }
 
-func CatchPanicWithContext(ctx context.Context) {
-	_, cancel := context.WithCancel(ctx)
+func CatchPanicWithCancel(cancel context.CancelFunc) {
 	if err := recover(); err != nil {
 		stack := make([]byte, 8096)
 		stack = stack[:runtime.Stack(stack, false)]
 		stack = trimStackPaths(stack, "GoSally-mvp")
 		log.Printf("recovered panic:\n%s", stack)
 		cancel()
+	}
+}
+
+func CatchPanicWithFallback(onPanic func(any)) {
+	if err := recover(); err != nil {
+		stack := make([]byte, 8096)
+		stack = stack[:runtime.Stack(stack, false)]
+		stack = trimStackPaths(stack, "GoSally-mvp")
+		log.Printf("recovered panic:\n%s", stack)
+		onPanic(err)
 	}
 }
