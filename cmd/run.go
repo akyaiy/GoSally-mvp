@@ -229,11 +229,10 @@ var runCmd = &cobra.Command{
 			}
 
 			serverv1 := sv1.InitV1Server(&sv1.HandlerV1InitStruct{
-				Log:            *x.SLog,
-				Config:         x.Config.Conf,
-				AllowedCmd:     regexp.MustCompile(`^[a-zA-Z0-9]+$`),
-				ListAllowedCmd: regexp.MustCompile(`^[a-zA-Z0-9_-]+$`),
-				Ver:            "v1",
+				Log:        *x.SLog,
+				Config:     x.Config.Conf,
+				AllowedCmd: regexp.MustCompile(`^[a-zA-Z0-9]+(>[a-zA-Z0-9]+)*$`),
+				Ver:        "v1",
 			})
 
 			s := gateway.InitGateway(&gateway.GatewayServerInit{
@@ -264,7 +263,24 @@ var runCmd = &cobra.Command{
 					Level:  logs.GlobalLevel,
 				}, "", 0),
 			}
+
+			nodeApp.Fallback(func(ctx context.Context, cs *corestate.CoreState, x *app.AppX) {
+				if err := srv.Shutdown(ctxMain); err != nil {
+					x.Log.Printf("%s: Failed to stop the server gracefully: %s", logs.PrintError(), err.Error())
+				} else {
+					x.Log.Printf("Server stopped gracefully")
+				}
+
+				x.Log.Println("Cleaning up...")
+
+				if err := run_manager.Clean(); err != nil {
+					x.Log.Printf("%s: Cleanup error: %s", logs.PrintError(), err.Error())
+				}
+				x.Log.Println("bye!")
+			})
+
 			go func() {
+				defer utils.CatchPanicWithCancel(cancelMain)
 				if x.Config.Conf.TLS.TlsEnabled {
 					listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port))
 					if err != nil {
@@ -296,6 +312,7 @@ var runCmd = &cobra.Command{
 
 			if x.Config.Conf.Updates.UpdatesEnabled {
 				go func() {
+					defer utils.CatchPanicWithCancel(cancelMain)
 					x.Updated = update.NewUpdater(ctxMain, x.Log, x.Config.Conf, x.Config.Env)
 					x.Updated.Shutdownfunc(cancelMain)
 					for {
@@ -314,20 +331,6 @@ var runCmd = &cobra.Command{
 					}
 				}()
 			}
-			nodeApp.Fallback(func(ctx context.Context, cs *corestate.CoreState, x *app.AppX) {
-				if err := srv.Shutdown(ctxMain); err != nil {
-					x.Log.Printf("%s: Failed to stop the server gracefully: %s", logs.PrintError(), err.Error())
-				} else {
-					x.Log.Printf("Server stopped gracefully")
-				}
-
-				x.Log.Println("Cleaning up...")
-
-				if err := run_manager.Clean(); err != nil {
-					x.Log.Printf("%s: Cleanup error: %s", logs.PrintError(), err.Error())
-				}
-				x.Log.Println("bye!")
-			})
 
 			<-ctxMain.Done()
 			nodeApp.CallFallback(ctx)
