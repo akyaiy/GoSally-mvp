@@ -25,8 +25,7 @@ type HandlerV1 struct {
 	cfg *config.Conf
 
 	// allowedCmd and listAllowedCmd are regular expressions used to validate command names.
-	allowedCmd     *regexp.Regexp
-	listAllowedCmd *regexp.Regexp
+	allowedCmd *regexp.Regexp
 
 	ver string
 }
@@ -36,11 +35,10 @@ type HandlerV1 struct {
 // because there is no validation of parameters in this function.
 func InitV1Server(o *HandlerV1InitStruct) *HandlerV1 {
 	return &HandlerV1{
-		log:            &o.Log,
-		cfg:            o.Config,
-		allowedCmd:     o.AllowedCmd,
-		listAllowedCmd: o.ListAllowedCmd,
-		ver:            o.Ver,
+		log:        &o.Log,
+		cfg:        o.Config,
+		allowedCmd: o.AllowedCmd,
+		ver:        o.Ver,
 	}
 }
 
