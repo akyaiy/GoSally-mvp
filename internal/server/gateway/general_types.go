@@ -13,14 +13,11 @@ type serversApiVer string
 
 type ServerApiContract interface {
 	GetVersion() string
-	Handle(w http.ResponseWriter, r *http.Request, req rpc.RPCRequest)
+	Handle(r *http.Request, req *rpc.RPCRequest) *rpc.RPCResponse
 }
 
 // GeneralServer implements the GeneralServerApiContract and serves as a router for different API versions.
 type GatewayServer struct {
-	w http.ResponseWriter
-	r *http.Request
-
 	// servers holds the registered servers by their API version.
 	// The key is the version string, and the value is the server implementing GeneralServerApi
 	servers map[serversApiVer]ServerApiContract
