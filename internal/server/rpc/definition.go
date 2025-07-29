@@ -1,27 +1,20 @@
 package rpc
 
-type RPCRequest struct {
-	JSONRPC string           `json:"jsonrpc"`
-	ID      any              `json:"id"`
-	Method  string           `json:"method"`
-	Params  RPCRequestParams `json:"params"`
-}
+import "encoding/json"
 
-type RPCRequestParams struct {
-	ContextVersion string         `json:"context-version"`
-	Method         map[string]any `json:"method-params"`
+type RPCRequest struct {
+	JSONRPC        string           `json:"jsonrpc"`
+	ID             *json.RawMessage `json:"id,omitempty"`
+	Method         string           `json:"method"`
+	Params         any              `json:"params,omitempty"`
+	ContextVersion string           `json:"context-version,omitempty"`
 }
 
 type RPCResponse struct {
-	JSONRPC string `json:"jsonrpc"`
-	ID      any    `json:"id"`
-	Result  any    `json:"result"`
-}
-
-type RPCError struct {
-	JSONRPC string `json:"jsonrpc"`
-	ID      any    `json:"id"`
-	Error   any    `json:"error"`
+	JSONRPC string           `json:"jsonrpc"`
+	ID      *json.RawMessage `json:"id"`
+	Result  any              `json:"result,omitempty"`
+	Error   any              `json:"error,omitempty"`
 }
 
 const (
