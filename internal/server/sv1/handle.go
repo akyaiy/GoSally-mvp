@@ -1,6 +1,7 @@
 package sv1
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/akyaiy/GoSally-mvp/internal/core/utils"
+	"github.com/akyaiy/GoSally-mvp/internal/engine/logs"
 	"github.com/akyaiy/GoSally-mvp/internal/server/rpc"
 	lua "github.com/yuin/gopher-lua"
 )
@@ -50,6 +52,54 @@ func (h *HandlerV1) HandleLUA(path string, req *rpc.RPCRequest) *rpc.RPCResponse
 	resultTable := L.NewTable()
 	L.SetField(outTable, "Result", resultTable)
 	L.SetGlobal("Out", outTable)
+
+	logTable := L.NewTable()
+
+	L.SetField(logTable, "Info", L.NewFunction(func(L *lua.LState) int {
+		msg := L.ToString(1)
+		h.x.SLog.Info(fmt.Sprintf("the script says: %s", msg), slog.String("script", path))
+		return 0
+	}))
+
+	L.SetField(logTable, "Debug", L.NewFunction(func(L *lua.LState) int {
+		msg := L.ToString(1)
+		h.x.SLog.Debug(fmt.Sprintf("the script says: %s", msg), slog.String("script", path))
+		return 0
+	}))
+
+	L.SetField(logTable, "Error", L.NewFunction(func(L *lua.LState) int {
+		msg := L.ToString(1)
+		h.x.SLog.Error(fmt.Sprintf("the script says: %s", msg), slog.String("script", path))
+		return 0
+	}))
+
+	L.SetField(logTable, "Warn", L.NewFunction(func(L *lua.LState) int {
+		msg := L.ToString(1)
+		h.x.SLog.Warn(fmt.Sprintf("the script says: %s", msg), slog.String("script", path))
+		return 0
+	}))
+
+	L.SetField(logTable, "Event", L.NewFunction(func(L *lua.LState) int {
+		msg := L.ToString(1)
+		h.x.Log.Printf("%s: %s", path, msg)
+		return 0
+	}))
+
+	L.SetField(logTable, "EventError", L.NewFunction(func(L *lua.LState) int {
+		msg := L.ToString(1)
+		h.x.Log.Printf("%s: %s: %s", logs.PrintError(), path, msg)
+		return 0
+	}))
+
+	L.SetField(logTable, "EventWarn", L.NewFunction(func(L *lua.LState) int {
+		msg := L.ToString(1)
+		h.x.Log.Printf("%s: %s: %s", logs.PrintWarn(), path, msg)
+		return 0
+	}))
+
+	registerDatabaseType(L)
+
+	L.SetGlobal("Log", logTable)
 
 	prep := filepath.Join(h.x.Config.Conf.ComDir, "_prepare.lua")
 	if _, err := os.Stat(prep); err == nil {

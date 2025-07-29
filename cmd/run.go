@@ -42,8 +42,11 @@ func contains(slice []string, item string) bool {
 }
 
 var runCmd = &cobra.Command{
-	Use:   "run",
-	Short: "Run node normally",
+	Use:     "run",
+	Aliases: []string{"r"},
+	Short:   "Run node normally",
+	Long: `
+"run" starts the node with settings depending on the configuration file`,
 	Run: func(cmd *cobra.Command, args []string) {
 		nodeApp := app.New()
 
@@ -314,8 +317,8 @@ var runCmd = &cobra.Command{
 				go func() {
 					defer utils.CatchPanicWithCancel(cancelMain)
 					updated := update.NewUpdater(&update.UpdaterInit{
-						X: x,
-						Ctx: ctxMain,
+						X:      x,
+						Ctx:    ctxMain,
 						Cancel: cancelMain,
 					})
 					updated.Shutdownfunc(cancelMain)

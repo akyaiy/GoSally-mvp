@@ -16,7 +16,9 @@ var compositor *config.Compositor = config.NewCompositor()
 var rootCmd = &cobra.Command{
 	Use:   "node",
 	Short: "Go Sally node",
-	Long:  "Main node runner for Go Sally",
+	Long: `
+GoSally is an http server that handles jsonrpc-2.0 requests by calling methods as lua 
+scripts in a given directory. For more information, visit: https://gosally.oblat.lv/`,
 	Run: func(cmd *cobra.Command, args []string) {
 		_ = cmd.Help()
 	},
