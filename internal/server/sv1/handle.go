@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/akyaiy/GoSally-mvp/internal/core/utils"
 	"github.com/akyaiy/GoSally-mvp/internal/server/rpc"
@@ -13,17 +14,17 @@ import (
 
 func (h *HandlerV1) Handle(r *http.Request, req *rpc.RPCRequest) *rpc.RPCResponse {
 	if req.Method == "" {
-		h.log.Info("invalid request received", slog.String("issue", rpc.ErrMethodNotFoundS), slog.String("requested-method", req.Method))
+		h.x.SLog.Info("invalid request received", slog.String("issue", rpc.ErrMethodNotFoundS), slog.String("requested-method", req.Method))
 		return rpc.NewError(rpc.ErrMethodIsMissing, rpc.ErrMethodIsMissingS, req.ID)
 	}
 
 	method, err := h.resolveMethodPath(req.Method)
 	if err != nil {
 		if err.Error() == rpc.ErrInvalidMethodFormatS {
-			h.log.Info("invalid request received", slog.String("issue", rpc.ErrInvalidMethodFormatS), slog.String("requested-method", req.Method))
+			h.x.SLog.Info("invalid request received", slog.String("issue", rpc.ErrInvalidMethodFormatS), slog.String("requested-method", req.Method))
 			return rpc.NewError(rpc.ErrInvalidMethodFormat, rpc.ErrInvalidMethodFormatS, req.ID)
 		} else if err.Error() == rpc.ErrMethodNotFoundS {
-			h.log.Info("invalid request received", slog.String("issue", rpc.ErrMethodNotFoundS), slog.String("requested-method", req.Method))
+			h.x.SLog.Info("invalid request received", slog.String("issue", rpc.ErrMethodNotFoundS), slog.String("requested-method", req.Method))
 			return rpc.NewError(rpc.ErrMethodNotFound, rpc.ErrMethodNotFoundS, req.ID)
 		}
 	}
@@ -37,7 +38,7 @@ func (h *HandlerV1) HandleLUA(path string, req *rpc.RPCRequest) *rpc.RPCResponse
 
 	inTable := L.NewTable()
 	paramsTable := L.NewTable()
-	if fetchedParams, ok := req.Params.(map[string]interface{}); ok {
+	if fetchedParams, ok := req.Params.(map[string]any); ok {
 		for k, v := range fetchedParams {
 			L.SetField(paramsTable, k, utils.ConvertGolangTypesToLua(L, v))
 		}
@@ -50,7 +51,7 @@ func (h *HandlerV1) HandleLUA(path string, req *rpc.RPCRequest) *rpc.RPCResponse
 	L.SetField(outTable, "Result", resultTable)
 	L.SetGlobal("Out", outTable)
 
-	prep := filepath.Join(h.cfg.ComDir, "_prepare.lua")
+	prep := filepath.Join(h.x.Config.Conf.ComDir, "_prepare.lua")
 	if _, err := os.Stat(prep); err == nil {
 		if err := L.DoFile(prep); err != nil {
 			return rpc.NewError(rpc.ErrInternalError, err.Error(), req.ID)
@@ -77,6 +78,7 @@ func (h *HandlerV1) HandleLUA(path string, req *rpc.RPCRequest) *rpc.RPCResponse
 			if msg := errTbl.RawGetString("message"); msg.Type() == lua.LTString {
 				message = msg.String()
 			}
+			h.x.SLog.Error("the script terminated with an error", slog.String("code", strconv.Itoa(code)), slog.String("message", message))
 			return rpc.NewError(code, message, req.ID)
 		}
 		return rpc.NewError(rpc.ErrInternalError, "Out.Error is not a table", req.ID)
@@ -93,5 +95,7 @@ func (h *HandlerV1) HandleLUA(path string, req *rpc.RPCRequest) *rpc.RPCResponse
 	resultTbl.ForEach(func(key lua.LValue, value lua.LValue) {
 		out[key.String()] = utils.ConvertLuaTypesToGolang(value)
 	})
+
+	out["responsible-node"] = h.cs.UUID32
 	return rpc.NewResponse(out, req.ID)
 }

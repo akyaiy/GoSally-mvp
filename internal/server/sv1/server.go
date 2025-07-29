@@ -3,26 +3,24 @@
 package sv1
 
 import (
-	"log/slog"
 	"regexp"
 
-	"github.com/akyaiy/GoSally-mvp/internal/engine/config"
+	"github.com/akyaiy/GoSally-mvp/internal/core/corestate"
+	"github.com/akyaiy/GoSally-mvp/internal/engine/app"
 )
 
 // HandlerV1InitStruct structure is only for initialization
 type HandlerV1InitStruct struct {
-	Ver            string
-	Log            slog.Logger
-	Config         *config.Conf
-	AllowedCmd     *regexp.Regexp
-	ListAllowedCmd *regexp.Regexp
+	Ver        string
+	CS         *corestate.CoreState
+	X          *app.AppX
+	AllowedCmd *regexp.Regexp
 }
 
 // HandlerV1 implements the ServerV1UtilsContract and serves as the main handler for API requests.
 type HandlerV1 struct {
-	log *slog.Logger
-
-	cfg *config.Conf
+	cs *corestate.CoreState
+	x  *app.AppX
 
 	// allowedCmd and listAllowedCmd are regular expressions used to validate command names.
 	allowedCmd *regexp.Regexp
@@ -35,8 +33,8 @@ type HandlerV1 struct {
 // because there is no validation of parameters in this function.
 func InitV1Server(o *HandlerV1InitStruct) *HandlerV1 {
 	return &HandlerV1{
-		log:        &o.Log,
-		cfg:        o.Config,
+		cs:         o.CS,
+		x:          o.X,
 		allowedCmd: o.AllowedCmd,
 		ver:        o.Ver,
 	}

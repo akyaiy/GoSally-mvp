@@ -24,7 +24,7 @@ func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 				"message": rpc.ErrInternalErrorS,
 			},
 		})
-		gs.log.Info("invalid request received", slog.String("issue", rpc.ErrInternalErrorS))
+		gs.x.SLog.Info("invalid request received", slog.String("issue", rpc.ErrInternalErrorS))
 		return
 	}
 
@@ -43,7 +43,7 @@ func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 					"message": rpc.ErrParseErrorS,
 				},
 			})
-			gs.log.Info("invalid request received", slog.String("issue", rpc.ErrParseErrorS))
+			gs.x.SLog.Info("invalid request received", slog.String("issue", rpc.ErrParseErrorS))
 			return
 		}
 		resp := gs.Route(r, &single)
@@ -78,17 +78,17 @@ func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 
 func (gs *GatewayServer) Route(r *http.Request, req *rpc.RPCRequest) (resp *rpc.RPCResponse) {
 	defer utils.CatchPanicWithFallback(func(rec any) {
-		gs.log.Error("panic caught in handler", slog.Any("error", rec))
+		gs.x.SLog.Error("panic caught in handler", slog.Any("error", rec))
 		resp = rpc.NewError(rpc.ErrInternalError, "Internal server error (panic)", req.ID)
 	})
 	if req.JSONRPC != rpc.JSONRPCVersion {
-		gs.log.Info("invalid request received", slog.String("issue", rpc.ErrInvalidRequestS), slog.String("requested-version", req.JSONRPC))
+		gs.x.SLog.Info("invalid request received", slog.String("issue", rpc.ErrInvalidRequestS), slog.String("requested-version", req.JSONRPC))
 		return rpc.NewError(rpc.ErrInvalidRequest, rpc.ErrInvalidRequestS, req.ID)
 	}
 
 	server, ok := gs.servers[serversApiVer(req.ContextVersion)]
 	if !ok {
-		gs.log.Info("invalid request received", slog.String("issue", rpc.ErrContextVersionS), slog.String("requested-version", req.ContextVersion))
+		gs.x.SLog.Info("invalid request received", slog.String("issue", rpc.ErrContextVersionS), slog.String("requested-version", req.ContextVersion))
 		return rpc.NewError(rpc.ErrContextVersion, rpc.ErrContextVersionS, req.ID)
 	}
 

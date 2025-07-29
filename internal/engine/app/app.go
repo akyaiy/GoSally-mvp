@@ -10,7 +10,6 @@ import (
 	"syscall"
 
 	"github.com/akyaiy/GoSally-mvp/internal/core/corestate"
-	"github.com/akyaiy/GoSally-mvp/internal/core/update"
 	"github.com/akyaiy/GoSally-mvp/internal/engine/config"
 )
 
@@ -34,10 +33,9 @@ type App struct {
 }
 
 type AppX struct {
-	Config  *config.Compositor
-	Log     *log.Logger
-	SLog    *slog.Logger
-	Updated *update.Updater
+	Config *config.Compositor
+	Log    *log.Logger
+	SLog   *slog.Logger
 }
 
 func New() AppContract {

@@ -1,10 +1,10 @@
 package gateway
 
 import (
-	"log/slog"
 	"net/http"
 
-	"github.com/akyaiy/GoSally-mvp/internal/engine/config"
+	"github.com/akyaiy/GoSally-mvp/internal/core/corestate"
+	"github.com/akyaiy/GoSally-mvp/internal/engine/app"
 	"github.com/akyaiy/GoSally-mvp/internal/server/rpc"
 )
 
@@ -22,6 +22,6 @@ type GatewayServer struct {
 	// The key is the version string, and the value is the server implementing GeneralServerApi
 	servers map[serversApiVer]ServerApiContract
 
-	log *slog.Logger
-	cfg *config.Conf
+	cs *corestate.CoreState
+	x  *app.AppX
 }

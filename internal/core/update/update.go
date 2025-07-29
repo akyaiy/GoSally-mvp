@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -16,6 +15,7 @@ import (
 
 	"github.com/akyaiy/GoSally-mvp/internal/core/run_manager"
 	"github.com/akyaiy/GoSally-mvp/internal/core/utils"
+	"github.com/akyaiy/GoSally-mvp/internal/engine/app"
 	"github.com/akyaiy/GoSally-mvp/internal/engine/config"
 	"golang.org/x/net/context"
 )
@@ -38,20 +38,23 @@ type UpdaterContract interface {
 }
 
 type Updater struct {
-	log    *log.Logger
-	config *config.Conf
-	env    *config.Env
+	x *app.AppX
 
 	ctx    context.Context
 	cancel context.CancelFunc
 }
 
-func NewUpdater(ctx context.Context, log *log.Logger, cfg *config.Conf, env *config.Env) *Updater {
+type UpdaterInit struct {
+	X      *app.AppX
+	Ctx    context.Context
+	Cancel context.CancelFunc
+}
+
+func NewUpdater(o *UpdaterInit) *Updater {
 	return &Updater{
-		log:    log,
-		config: cfg,
-		env:    env,
-		ctx:    ctx,
+		x:      o.X,
+		ctx:    o.Ctx,
+		cancel: o.Cancel,
 	}
 }
 
@@ -119,7 +122,7 @@ func isVersionNewer(current, latest Version) bool {
 func (u *Updater) GetCurrentVersion() (Version, Branch, error) {
 	version, branch, err := splitVersionString(string(config.NodeVersion))
 	if err != nil {
-		u.log.Printf("Failed to parse version string: %s", err.Error())
+		u.x.Log.Printf("Failed to parse version string: %s", err.Error())
 		return "", "", err
 	}
 	switch branch {
@@ -131,28 +134,28 @@ func (u *Updater) GetCurrentVersion() (Version, Branch, error) {
 }
 
 func (u *Updater) GetLatestVersion(updateBranch Branch) (Version, Branch, error) {
-	repoURL := u.config.Updates.RepositoryURL
+	repoURL := u.x.Config.Conf.Updates.RepositoryURL
 	if repoURL == "" {
-		u.log.Printf("Failed to get latest version: %s", "RepositoryURL is empty in config")
+		u.x.Log.Printf("Failed to get latest version: %s", "RepositoryURL is empty in config")
 		return "", "", errors.New("repository URL is empty")
 	}
 	if !strings.HasPrefix(repoURL, "http://") && !strings.HasPrefix(repoURL, "https://") {
-		u.log.Printf("Failed to get latest version: %s: %s", "RepositoryURL does not start with http:// or https:/", repoURL)
+		u.x.Log.Printf("Failed to get latest version: %s: %s", "RepositoryURL does not start with http:// or https:/", repoURL)
 		return "", "", errors.New("repository URL must start with http:// or https://")
 	}
 	response, err := http.Get(repoURL + "/" + config.ActualFileName)
 	if err != nil {
-		u.log.Printf("Failed to fetch latest version: %s", err.Error())
+		u.x.Log.Printf("Failed to fetch latest version: %s", err.Error())
 		return "", "", err
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		u.log.Printf("Failed to fetch latest version: HTTP status %d", response.StatusCode)
+		u.x.Log.Printf("Failed to fetch latest version: HTTP status %d", response.StatusCode)
 		return "", "", errors.New("failed to fetch latest version, status code: " + http.StatusText(response.StatusCode))
 	}
 	data, err := io.ReadAll(response.Body)
 	if err != nil {
-		u.log.Printf("Failed to read latest version response: %s", err.Error())
+		u.x.Log.Printf("Failed to read latest version response: %s", err.Error())
 		return "", "", err
 	}
 	lines := strings.Split(string(data), "\n")
@@ -163,7 +166,7 @@ func (u *Updater) GetLatestVersion(updateBranch Branch) (Version, Branch, error)
 		}
 		version, branch, err := splitVersionString(string(line))
 		if err != nil {
-			u.log.Printf("Failed to parse version string: %s", err.Error())
+			u.x.Log.Printf("Failed to parse version string: %s", err.Error())
 			return "", "", err
 		}
 		if branch == updateBranch {
@@ -189,7 +192,7 @@ func (u *Updater) CkeckUpdates() (IsNewUpdate, error) {
 }
 
 func (u *Updater) Update() error {
-	if !u.config.Updates.UpdatesEnabled {
+	if !u.x.Config.Conf.Updates.UpdatesEnabled {
 		return errors.New("updates are disabled in config, skipping update")
 	}
 
@@ -209,7 +212,7 @@ func (u *Updater) Update() error {
 	}
 
 	updateArchiveName := fmt.Sprintf("%s.v%s-%s", config.UpdateArchiveName, latestVersion, latestBranch)
-	updateDest := fmt.Sprintf("%s/%s.%s", u.config.Updates.RepositoryURL, updateArchiveName, "tar.gz")
+	updateDest := fmt.Sprintf("%s/%s.%s", u.x.Config.Conf.Updates.RepositoryURL, updateArchiveName, "tar.gz")
 
 	resp, err := http.Get(updateDest)
 	if err != nil {
@@ -275,7 +278,7 @@ func (u *Updater) Update() error {
 
 func (u *Updater) InstallAndRestart() error {
 
-	nodePath := u.env.NodePath
+	nodePath := u.x.Config.Env.NodePath
 	if nodePath == "" {
 		return errors.New("GS_NODE_PATH environment variable is not set")
 	}
@@ -303,12 +306,7 @@ func (u *Updater) InstallAndRestart() error {
 		return fmt.Errorf("failed to chmod: %w", err)
 	}
 
-	u.log.Printf("Launching new version: path is %s", targetPath)
-	// cmd := exec.Command(targetPath, os.Args[1:]...)
-	// cmd.Env = os.Environ()
-	// cmd.Stdout = os.Stdout
-	// cmd.Stderr = os.Stderr
-	// cmd.Stdin = os.Stdin
+	u.x.Log.Printf("Launching new version: path is %s", targetPath)
 	args := os.Args
 	args[0] = targetPath
 	env := utils.SetEviron(os.Environ(), "GS_PARENT_PID=-1")
@@ -317,17 +315,6 @@ func (u *Updater) InstallAndRestart() error {
 		return err
 	}
 	return syscall.Exec(targetPath, args, env)
-	//u.cancel()
-
-	// TODO: fix this crap and find a better way to update without errors
-	// for {
-	// 	_, err := run_manager.Get("run.lock")
-	// 	if err != nil {
-	// 		break
-	// 	}
-	// }
-
-	// return cmd.Start()
 }
 
 func (u *Updater) Shutdownfunc(f context.CancelFunc) {

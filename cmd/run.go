@@ -229,15 +229,15 @@ var runCmd = &cobra.Command{
 			}
 
 			serverv1 := sv1.InitV1Server(&sv1.HandlerV1InitStruct{
-				Log:        *x.SLog,
-				Config:     x.Config.Conf,
+				X:          x,
+				CS:         cs,
 				AllowedCmd: regexp.MustCompile(`^[a-zA-Z0-9]+(>[a-zA-Z0-9]+)*$`),
 				Ver:        "v1",
 			})
 
 			s := gateway.InitGateway(&gateway.GatewayServerInit{
-				Log:    x.SLog,
-				Config: x.Config.Conf,
+				CS: cs,
+				X:  x,
 			}, serverv1)
 
 			r := chi.NewRouter()
@@ -313,15 +313,19 @@ var runCmd = &cobra.Command{
 			if x.Config.Conf.Updates.UpdatesEnabled {
 				go func() {
 					defer utils.CatchPanicWithCancel(cancelMain)
-					x.Updated = update.NewUpdater(ctxMain, x.Log, x.Config.Conf, x.Config.Env)
-					x.Updated.Shutdownfunc(cancelMain)
+					updated := update.NewUpdater(&update.UpdaterInit{
+						X: x,
+						Ctx: ctxMain,
+						Cancel: cancelMain,
+					})
+					updated.Shutdownfunc(cancelMain)
 					for {
-						isNewUpdate, err := x.Updated.CkeckUpdates()
+						isNewUpdate, err := updated.CkeckUpdates()
 						if err != nil {
 							x.Log.Printf("Failed to check for updates: %s", err.Error())
 						}
 						if isNewUpdate {
-							if err := x.Updated.Update(); err != nil {
+							if err := updated.Update(); err != nil {
 								x.Log.Printf("Failed to update: %s", err.Error())
 							} else {
 								x.Log.Printf("Update completed successfully")

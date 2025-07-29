@@ -2,23 +2,23 @@ package gateway
 
 import (
 	"errors"
-	"log/slog"
 
-	"github.com/akyaiy/GoSally-mvp/internal/engine/config"
+	"github.com/akyaiy/GoSally-mvp/internal/core/corestate"
+	"github.com/akyaiy/GoSally-mvp/internal/engine/app"
 )
 
 // GeneralServerInit structure only for initialization general server.
 type GatewayServerInit struct {
-	Log    *slog.Logger
-	Config *config.Conf
+	CS *corestate.CoreState
+	X  *app.AppX
 }
 
 // InitGeneral initializes a new GeneralServer with the provided configuration and registered servers.
 func InitGateway(o *GatewayServerInit, servers ...ServerApiContract) *GatewayServer {
 	general := &GatewayServer{
 		servers: make(map[serversApiVer]ServerApiContract),
-		cfg:     o.Config,
-		log:     o.Log,
+		cs:      o.CS,
+		x:       o.X,
 	}
 
 	// register the provided servers
