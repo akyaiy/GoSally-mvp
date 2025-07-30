@@ -32,12 +32,6 @@ type HTTPServer struct {
 	Port           string         `mapstructure:"port"`
 	Timeout        time.Duration  `mapstructure:"timeout"`
 	IdleTimeout    time.Duration  `mapstructure:"idle_timeout"`
-	HTTPServer_Api HTTPServer_Api `mapstructure:"api"`
-}
-
-type HTTPServer_Api struct {
-	LatestVer string   `mapstructure:"latest-version"`
-	Layers    []string `mapstructure:"layers"`
 }
 
 type TLS struct {
