@@ -31,7 +31,7 @@ func Run(cmd *cobra.Command, args []string) {
 	nodeApp.InitialHooks(
 		Init0Hook, Init1Hook, Init2Hook,
 		Init3Hook, Init4Hook, Init5Hook,
-		Init6Hook,
+		Init6Hook, Init7Hook,
 	)
 
 	nodeApp.Run(RunHook)
@@ -82,7 +82,7 @@ func RunHook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) error {
 	})
 
 	srv := &http.Server{
-		Addr:    x.Config.Conf.HTTPServer.Address,
+		Addr:    *x.Config.Conf.HTTPServer.Address,
 		Handler: r,
 		ErrorLog: log.New(&logs.SlogWriter{
 			Logger: x.SLog,
@@ -107,22 +107,22 @@ func RunHook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) error {
 
 	go func() {
 		defer utils.CatchPanicWithCancel(cancelMain)
-		if x.Config.Conf.TLS.TlsEnabled {
-			listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port))
+		if *x.Config.Conf.TLS.TlsEnabled {
+			listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", *x.Config.Conf.HTTPServer.Address, *x.Config.Conf.HTTPServer.Port))
 			if err != nil {
 				x.Log.Printf("%s: Failed to start TLS listener: %s", logs.PrintError(), err.Error())
 				cancelMain()
 				return
 			}
-			x.Log.Printf("Serving on %s port %s with TLS... (https://%s%s)", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port, fmt.Sprintf("%s:%s", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port), config.ComDirRoute)
+			x.Log.Printf("Serving on %s port %s with TLS... (https://%s%s)", *x.Config.Conf.HTTPServer.Address, *x.Config.Conf.HTTPServer.Port, fmt.Sprintf("%s:%s", *x.Config.Conf.HTTPServer.Address, *x.Config.Conf.HTTPServer.Port), config.ComDirRoute)
 			limitedListener := netutil.LimitListener(listener, 100)
-			if err := srv.ServeTLS(limitedListener, x.Config.Conf.TLS.CertFile, x.Config.Conf.TLS.KeyFile); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			if err := srv.ServeTLS(limitedListener, *x.Config.Conf.TLS.CertFile, *x.Config.Conf.TLS.KeyFile); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				x.Log.Printf("%s: Failed to start HTTPS server: %s", logs.PrintError(), err.Error())
 				cancelMain()
 			}
 		} else {
-			x.Log.Printf("Serving on %s port %s... (http://%s%s)", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port, fmt.Sprintf("%s:%s", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port), config.ComDirRoute)
-			listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", x.Config.Conf.HTTPServer.Address, x.Config.Conf.HTTPServer.Port))
+			x.Log.Printf("Serving on %s port %s... (http://%s%s)", *x.Config.Conf.HTTPServer.Address, *x.Config.Conf.HTTPServer.Port, fmt.Sprintf("%s:%s", *x.Config.Conf.HTTPServer.Address, *x.Config.Conf.HTTPServer.Port), config.ComDirRoute)
+			listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", *x.Config.Conf.HTTPServer.Address, *x.Config.Conf.HTTPServer.Port))
 			if err != nil {
 				x.Log.Printf("%s: Failed to start listener: %s", logs.PrintError(), err.Error())
 				cancelMain()
@@ -136,7 +136,7 @@ func RunHook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) error {
 		}
 	}()
 
-	if x.Config.Conf.Updates.UpdatesEnabled {
+	if *x.Config.Conf.Updates.UpdatesEnabled {
 		go func() {
 			defer utils.CatchPanicWithCancel(cancelMain)
 			updated := update.NewUpdater(&update.UpdaterInit{
@@ -157,7 +157,7 @@ func RunHook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) error {
 						x.Log.Printf("Update completed successfully")
 					}
 				}
-				time.Sleep(x.Config.Conf.Updates.CheckInterval)
+				time.Sleep(*x.Config.Conf.Updates.CheckInterval)
 			}
 		}()
 	}
