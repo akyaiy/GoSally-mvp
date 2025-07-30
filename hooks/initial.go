@@ -1,7 +1,6 @@
 package hooks
 
 import (
-	"slices"
 	"errors"
 	"fmt"
 	"io"
@@ -10,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"syscall"
 	"time"
 
