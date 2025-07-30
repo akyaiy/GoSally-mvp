@@ -97,8 +97,6 @@ func (h *HandlerV1) HandleLUA(path string, req *rpc.RPCRequest) *rpc.RPCResponse
 		return 0
 	}))
 
-	registerDatabaseType(L)
-
 	L.SetGlobal("Log", logTable)
 
 	prep := filepath.Join(h.x.Config.Conf.ComDir, "_prepare.lua")
