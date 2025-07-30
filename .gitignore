@@ -3,7 +3,8 @@ bin/
 cert/
 tmp/
 .meta/
+db/
+
 .vscode
 Taskfile.yml
-
 config.yaml
