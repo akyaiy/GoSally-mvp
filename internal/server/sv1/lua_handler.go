@@ -13,7 +13,7 @@ import (
 	lua "github.com/yuin/gopher-lua"
 )
 
-func (h *HandlerV1) HandleLUA(path string, req *rpc.RPCRequest) *rpc.RPCResponse {
+func (h *HandlerV1) handleLUA(path string, req *rpc.RPCRequest) *rpc.RPCResponse {
 	L := lua.NewState()
 	defer L.Close()
 
