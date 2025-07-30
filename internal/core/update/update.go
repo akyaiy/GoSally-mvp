@@ -134,7 +134,7 @@ func (u *Updater) GetCurrentVersion() (Version, Branch, error) {
 }
 
 func (u *Updater) GetLatestVersion(updateBranch Branch) (Version, Branch, error) {
-	repoURL := u.x.Config.Conf.Updates.RepositoryURL
+	repoURL := *u.x.Config.Conf.Updates.RepositoryURL
 	if repoURL == "" {
 		u.x.Log.Printf("Failed to get latest version: %s", "RepositoryURL is empty in config")
 		return "", "", errors.New("repository URL is empty")
@@ -192,7 +192,7 @@ func (u *Updater) CkeckUpdates() (IsNewUpdate, error) {
 }
 
 func (u *Updater) Update() error {
-	if !u.x.Config.Conf.Updates.UpdatesEnabled {
+	if !*u.x.Config.Conf.Updates.UpdatesEnabled {
 		return errors.New("updates are disabled in config, skipping update")
 	}
 
@@ -212,7 +212,7 @@ func (u *Updater) Update() error {
 	}
 
 	updateArchiveName := fmt.Sprintf("%s.v%s-%s", config.UpdateArchiveName, latestVersion, latestBranch)
-	updateDest := fmt.Sprintf("%s/%s.%s", u.x.Config.Conf.Updates.RepositoryURL, updateArchiveName, "tar.gz")
+	updateDest := fmt.Sprintf("%s/%s.%s", *u.x.Config.Conf.Updates.RepositoryURL, updateArchiveName, "tar.gz")
 
 	resp, err := http.Get(updateDest)
 	if err != nil {
@@ -278,7 +278,7 @@ func (u *Updater) Update() error {
 
 func (u *Updater) InstallAndRestart() error {
 
-	nodePath := u.x.Config.Env.NodePath
+	nodePath := *u.x.Config.Env.NodePath
 	if nodePath == "" {
 		return errors.New("GS_NODE_PATH environment variable is not set")
 	}

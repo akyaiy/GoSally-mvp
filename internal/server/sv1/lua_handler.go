@@ -12,8 +12,6 @@ import (
 	lua "github.com/yuin/gopher-lua"
 )
 
-
-
 func (h *HandlerV1) handleLUA(path string, req *rpc.RPCRequest) *rpc.RPCResponse {
 	L := lua.NewState()
 	defer L.Close()
@@ -36,10 +34,10 @@ func (h *HandlerV1) handleLUA(path string, req *rpc.RPCRequest) *rpc.RPCResponse
 	logTable := L.NewTable()
 
 	logFuncs := map[string]func(string, ...any){
-		"Info":   h.x.SLog.Info,
-		"Debug":  h.x.SLog.Debug,
-		"Error":  h.x.SLog.Error,
-		"Warn":   h.x.SLog.Warn,
+		"Info":  h.x.SLog.Info,
+		"Debug": h.x.SLog.Debug,
+		"Error": h.x.SLog.Error,
+		"Warn":  h.x.SLog.Warn,
 	}
 
 	for name, logFunc := range logFuncs {
@@ -70,7 +68,7 @@ func (h *HandlerV1) handleLUA(path string, req *rpc.RPCRequest) *rpc.RPCResponse
 
 	L.SetGlobal("Log", logTable)
 
-	prep := filepath.Join(h.x.Config.Conf.ComDir, "_prepare.lua")
+	prep := filepath.Join(*h.x.Config.Conf.ComDir, "_prepare.lua")
 	if _, err := os.Stat(prep); err == nil {
 		if err := L.DoFile(prep); err != nil {
 			return rpc.NewError(rpc.ErrInternalError, err.Error(), req.ID)

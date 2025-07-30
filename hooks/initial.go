@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"syscall"
 	"time"
 
@@ -49,12 +50,12 @@ func Init2Hook(cs *corestate.CoreState, x *app.AppX) {
 	if err := x.Config.LoadEnv(); err != nil {
 		x.Log.Fatalf("env load error: %s", err)
 	}
-	cs.NodePath = x.Config.Env.NodePath
+	cs.NodePath = *x.Config.Env.NodePath
 
 	if cfgPath := x.Config.CMDLine.Run.ConfigPath; cfgPath != "" {
-		x.Config.Env.ConfigPath = cfgPath
+		x.Config.Env.ConfigPath = &cfgPath
 	}
-	if err := x.Config.LoadConf(x.Config.Env.ConfigPath); err != nil {
+	if err := x.Config.LoadConf(*x.Config.Env.ConfigPath); err != nil {
 		x.Log.Fatalf("conf load error: %s", err)
 	}
 }
@@ -77,10 +78,7 @@ func Init3Hook(cs *corestate.CoreState, x *app.AppX) {
 }
 
 func Init4Hook(cs *corestate.CoreState, x *app.AppX) {
-	if x.Config.Env.ParentStagePID != os.Getpid() {
-		if !slices.Contains(x.Config.Conf.DisableWarnings, "--WNonStdTmpDir") && os.TempDir() != "/tmp" {
-			x.Log.Printf("%s: %s", logs.PrintWarn(), "Non-standard value specified for temporary directory")
-		}
+	if *x.Config.Env.ParentStagePID != os.Getpid() {
 		// still pre-init stage
 		runDir, err := run_manager.Create(cs.UUID32)
 		if err != nil {
@@ -174,6 +172,16 @@ func Init5Hook(cs *corestate.CoreState, x *app.AppX) {
 }
 
 func Init6Hook(cs *corestate.CoreState, x *app.AppX) {
+	if !slices.Contains(*x.Config.Conf.DisableWarnings, "--WNonStdTmpDir") && os.TempDir() != "/tmp" {
+		x.Log.Printf("%s: %s", logs.PrintWarn(), "Non-standard value specified for temporary directory")
+	}
+	if strings.Contains(*x.Config.Conf.Log.OutPath, `%tmp%`) {
+		replaced := strings.ReplaceAll(*x.Config.Conf.Log.OutPath, "%tmp%", filepath.Clean(run_manager.RuntimeDir()))
+		x.Config.Conf.Log.OutPath = &replaced
+	}
+}
+
+func Init7Hook(cs *corestate.CoreState, x *app.AppX) {
 	cs.Stage = corestate.StageReady
 	x.Log.SetPrefix(logs.SetGreen(fmt.Sprintf("(%s) ", cs.Stage)))
 
@@ -185,3 +193,27 @@ func Init6Hook(cs *corestate.CoreState, x *app.AppX) {
 	}
 	*x.SLog = *newSlog
 }
+
+// repl := map[string]string{
+// 			"tmp": filepath.Clean(run_manager.RuntimeDir()),
+// 		}
+// 		re := regexp.MustCompile(`%(\w+)%`)
+// 		result := re.ReplaceAllStringFunc(x.Config.Conf.Log.OutPath, func(match string) string {
+// 			sub := re.FindStringSubmatch(match)
+// 			if len(sub) < 2 {
+// 				return match
+// 			}
+// 			key := sub[1]
+// 			if val, ok := repl[key]; ok {
+// 				return val
+// 			}
+// 			return match
+// 		})
+
+// 		if strings.Contains(x.Config.Conf.Log.OutPath, "%tmp%") {
+// 			relPath := strings.TrimPrefix(result, filepath.Clean(run_manager.RuntimeDir()))
+// 			if err := run_manager.SetDir(relPath); err != nil {
+// 				_ = run_manager.Clean()
+// 				x.Log.Fatalf("Unexpected failure: %s", err.Error())
+// 			}
+// 		}

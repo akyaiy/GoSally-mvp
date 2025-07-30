@@ -18,45 +18,45 @@ type Compositor struct {
 }
 
 type Conf struct {
-	Mode            string     `mapstructure:"mode"`
-	ComDir          string     `mapstructure:"com_dir"`
-	HTTPServer      HTTPServer `mapstructure:"http_server"`
-	TLS             TLS        `mapstructure:"tls"`
-	Updates         Updates    `mapstructure:"updates"`
-	Log             Log        `mapstructure:"log"`
-	DisableWarnings []string   `mapstructure:"disable_warnings"`
+	Mode            *string     `mapstructure:"mode"`
+	ComDir          *string     `mapstructure:"com_dir"`
+	HTTPServer      *HTTPServer `mapstructure:"http_server"`
+	TLS             *TLS        `mapstructure:"tls"`
+	Updates         *Updates    `mapstructure:"updates"`
+	Log             *Log        `mapstructure:"log"`
+	DisableWarnings *[]string   `mapstructure:"disable_warnings"`
 }
 
 type HTTPServer struct {
-	Address        string         `mapstructure:"address"`
-	Port           string         `mapstructure:"port"`
-	Timeout        time.Duration  `mapstructure:"timeout"`
-	IdleTimeout    time.Duration  `mapstructure:"idle_timeout"`
+	Address     *string        `mapstructure:"address"`
+	Port        *string        `mapstructure:"port"`
+	Timeout     *time.Duration `mapstructure:"timeout"`
+	IdleTimeout *time.Duration `mapstructure:"idle_timeout"`
 }
 
 type TLS struct {
-	TlsEnabled bool   `mapstructure:"enabled"`
-	CertFile   string `mapstructure:"cert_file"`
-	KeyFile    string `mapstructure:"key_file"`
+	TlsEnabled *bool   `mapstructure:"enabled"`
+	CertFile   *string `mapstructure:"cert_file"`
+	KeyFile    *string `mapstructure:"key_file"`
 }
 
 type Updates struct {
-	UpdatesEnabled bool          `mapstructure:"enabled"`
-	CheckInterval  time.Duration `mapstructure:"check_interval"`
-	RepositoryURL  string        `mapstructure:"repository_url"`
-	WantedVersion  string        `mapstructure:"wanted_version"`
+	UpdatesEnabled *bool          `mapstructure:"enabled"`
+	CheckInterval  *time.Duration `mapstructure:"check_interval"`
+	RepositoryURL  *string        `mapstructure:"repository_url"`
+	WantedVersion  *string        `mapstructure:"wanted_version"`
 }
 
 type Log struct {
-	Level   string `mapstructure:"level"`
-	OutPath string `mapstructure:"out_path"`
+	Level   *string `mapstructure:"level"`
+	OutPath *string `mapstructure:"out_path"`
 }
 
 // ConfigEnv structure for environment variables
 type Env struct {
-	ConfigPath     string `mapstructure:"config_path"`
-	NodePath       string `mapstructure:"node_path"`
-	ParentStagePID int    `mapstructure:"parent_pid"`
+	ConfigPath     *string `mapstructure:"config_path"`
+	NodePath       *string `mapstructure:"node_path"`
+	ParentStagePID *int    `mapstructure:"parent_pid"`
 }
 
 type CMDLine struct {
