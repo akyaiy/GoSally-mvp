@@ -7,11 +7,12 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/akyaiy/GoSally-mvp/internal/core/utils"
 	"github.com/akyaiy/GoSally-mvp/internal/engine/logs"
 	"github.com/akyaiy/GoSally-mvp/internal/server/rpc"
 	lua "github.com/yuin/gopher-lua"
 )
+
+
 
 func (h *HandlerV1) handleLUA(path string, req *rpc.RPCRequest) *rpc.RPCResponse {
 	L := lua.NewState()
@@ -21,7 +22,7 @@ func (h *HandlerV1) handleLUA(path string, req *rpc.RPCRequest) *rpc.RPCResponse
 	paramsTable := L.NewTable()
 	if fetchedParams, ok := req.Params.(map[string]any); ok {
 		for k, v := range fetchedParams {
-			L.SetField(paramsTable, k, utils.ConvertGolangTypesToLua(L, v))
+			L.SetField(paramsTable, k, ConvertGolangTypesToLua(L, v))
 		}
 	}
 	L.SetField(inTable, "Params", paramsTable)
@@ -34,29 +35,20 @@ func (h *HandlerV1) handleLUA(path string, req *rpc.RPCRequest) *rpc.RPCResponse
 
 	logTable := L.NewTable()
 
-	L.SetField(logTable, "Info", L.NewFunction(func(L *lua.LState) int {
-		msg := L.ToString(1)
-		h.x.SLog.Info(fmt.Sprintf("the script says: %s", msg), slog.String("script", path))
-		return 0
-	}))
+	logFuncs := map[string]func(string, ...any){
+		"Info":   h.x.SLog.Info,
+		"Debug":  h.x.SLog.Debug,
+		"Error":  h.x.SLog.Error,
+		"Warn":   h.x.SLog.Warn,
+	}
 
-	L.SetField(logTable, "Debug", L.NewFunction(func(L *lua.LState) int {
-		msg := L.ToString(1)
-		h.x.SLog.Debug(fmt.Sprintf("the script says: %s", msg), slog.String("script", path))
-		return 0
-	}))
-
-	L.SetField(logTable, "Error", L.NewFunction(func(L *lua.LState) int {
-		msg := L.ToString(1)
-		h.x.SLog.Error(fmt.Sprintf("the script says: %s", msg), slog.String("script", path))
-		return 0
-	}))
-
-	L.SetField(logTable, "Warn", L.NewFunction(func(L *lua.LState) int {
-		msg := L.ToString(1)
-		h.x.SLog.Warn(fmt.Sprintf("the script says: %s", msg), slog.String("script", path))
-		return 0
-	}))
+	for name, logFunc := range logFuncs {
+		L.SetField(logTable, name, L.NewFunction(func(L *lua.LState) int {
+			msg := L.ToString(1)
+			logFunc(fmt.Sprintf("the script says: %s", msg), slog.String("script", path))
+			return 0
+		}))
+	}
 
 	L.SetField(logTable, "Event", L.NewFunction(func(L *lua.LState) int {
 		msg := L.ToString(1)
@@ -120,7 +112,7 @@ func (h *HandlerV1) handleLUA(path string, req *rpc.RPCRequest) *rpc.RPCResponse
 
 	out := make(map[string]any)
 	resultTbl.ForEach(func(key lua.LValue, value lua.LValue) {
-		out[key.String()] = utils.ConvertLuaTypesToGolang(value)
+		out[key.String()] = ConvertLuaTypesToGolang(value)
 	})
 
 	out["responsible-node"] = h.cs.UUID32
