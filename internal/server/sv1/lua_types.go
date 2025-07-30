@@ -17,7 +17,6 @@ func ConvertLuaTypesToGolang(value lua.LValue) any {
 	case lua.LTTable:
 		tbl := value.(*lua.LTable)
 
-		// Попробуем как массив
 		var arr []any
 		isArray := true
 		tbl.ForEach(func(key, val lua.LValue) {
