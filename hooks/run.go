@@ -28,7 +28,11 @@ import (
 var nodeApp = app.New()
 
 func Run(cmd *cobra.Command, args []string) {
-	nodeApp.InitialHooks()
+	nodeApp.InitialHooks(
+		Init0Hook, Init1Hook, Init2Hook,
+		Init3Hook, Init4Hook, Init5Hook,
+		Init6Hook,
+	)
 
 	nodeApp.Run(RunHook)
 }
