@@ -1,5 +1,15 @@
 -- com/List.lua
 
+if In.Params and In.Params.about then
+  Out.Result = {
+    description = "Returns a list of available methods",
+    params = {
+      layer = "select which layer list to display"
+    }
+  }
+  return
+end
+
 local function isValidCommand(name)
   return name:match("^[%w]+$") ~= nil
 end
