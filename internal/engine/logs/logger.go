@@ -16,6 +16,17 @@ import (
 )
 
 var GlobalLevel slog.Level
+type levelsStruct struct {
+	Available []string
+	Fallback  string
+}
+
+var Levels = levelsStruct{
+	Available: []string{
+		"debug", "info",
+	},
+	Fallback: "info",
+}
 
 type SlogWriter struct {
 	Logger *slog.Logger

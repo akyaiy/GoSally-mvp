@@ -179,6 +179,12 @@ func Init6Hook(cs *corestate.CoreState, x *app.AppX) {
 		replaced := strings.ReplaceAll(*x.Config.Conf.Log.OutPath, "%tmp%", filepath.Clean(run_manager.RuntimeDir()))
 		x.Config.Conf.Log.OutPath = &replaced
 	}
+	if !slices.Contains(logs.Levels.Available, *x.Config.Conf.Log.Level) {
+		if !slices.Contains(*x.Config.Conf.DisableWarnings, "--WUndefLogLevel") {
+			x.Log.Printf("%s: %s", logs.PrintWarn(), fmt.Sprintf("Unknown logging level %s, fallback level: %s", *x.Config.Conf.Log.Level, logs.Levels.Fallback))
+		}
+		x.Config.Conf.Log.Level = &logs.Levels.Fallback
+	}
 }
 
 func Init7Hook(cs *corestate.CoreState, x *app.AppX) {
