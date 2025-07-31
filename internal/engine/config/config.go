@@ -27,9 +27,10 @@ type Conf struct {
 }
 
 type Node struct {
-	Mode   *string `mapstructure:"mode"`
-	Name   *string `mapstructure:"name"`
-	ComDir *string `mapstructure:"com_dir"`
+	Mode       *string `mapstructure:"mode"`
+	Name       *string `mapstructure:"name"`
+	ShowConfig *bool   `mapstructure:"show_config"`
+	ComDir     *string `mapstructure:"com_dir"`
 }
 
 type HTTPServer struct {

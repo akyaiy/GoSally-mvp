@@ -45,6 +45,7 @@ func (c *Compositor) LoadConf(path string) error {
 	// defaults
 	v.SetDefault("node.name", "noname")
 	v.SetDefault("node.mode", "dev")
+	v.SetDefault("node.show_config", "false")
 	v.SetDefault("node.com_dir", "./com/")
 	v.SetDefault("http_server.address", "0.0.0.0")
 	v.SetDefault("http_server.port", "8080")

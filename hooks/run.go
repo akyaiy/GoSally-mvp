@@ -141,7 +141,7 @@ func RunHook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) error {
 		}
 	}()
 
-	session_manager.StartCleanup(5 * time.Minute)
+	session_manager.StartCleanup(5 * time.Second)
 
 	if *x.Config.Conf.Updates.UpdatesEnabled {
 		go func() {

@@ -1,6 +1,7 @@
 package hooks
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -185,6 +186,29 @@ func Init6Hook(cs *corestate.CoreState, x *app.AppX) {
 		}
 		x.Config.Conf.Log.Level = &logs.Levels.Fallback
 	}
+
+	if *x.Config.Conf.Node.ShowConfig {
+		fmt.Printf("Configuration from %s:\n", x.Config.CMDLine.Run.ConfigPath)
+		x.Config.Print(x.Config.Conf)
+
+		fmt.Printf("Environment:\n")
+		x.Config.Print(x.Config.Env)
+		ok := true
+
+		fmt.Printf("%s (%s/%s): ", "Is that ok?", logs.SetBrightGreen("Y"), logs.SetBrightRed("n"))
+
+		reader := bufio.NewReader(os.Stdin)
+		input, _ := reader.ReadString('\n')
+		input = strings.TrimSpace(strings.ToLower(input))
+
+		ok = input == "" || input == "y" || input == "yes"
+
+		if !ok {
+			_ = run_manager.Clean()
+			x.Log.Fatalf("Cancel launch")
+		}
+	}
+
 	x.Log.Printf("Starting \"%s\" node", *x.Config.Conf.Node.Name)
 }
 
