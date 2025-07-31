@@ -27,11 +27,11 @@ func addInitiatorHeaders(req *http.Request, headers http.Header) {
 	headers.Set("X-Initiator-Referer", req.Referer())
 }
 
-// A small reminder: this code is only at the MVP stage, 
-// and some parts of the code may cause shock from the 
-// incompetence of the developer. But, in the end, 
-// this code is just an idea. If there is a desire to 
-// contribute to the development of the code, 
+// A small reminder: this code is only at the MVP stage,
+// and some parts of the code may cause shock from the
+// incompetence of the developer. But, in the end,
+// this code is just an idea. If there is a desire to
+// contribute to the development of the code,
 // I will be only glad.
 // TODO: make this huge function more harmonious by dividing responsibilities
 func (h *HandlerV1) handleLUA(r *http.Request, req *rpc.RPCRequest, path string) *rpc.RPCResponse {
@@ -213,7 +213,7 @@ func (h *HandlerV1) handleLUA(r *http.Request, req *rpc.RPCRequest, path string)
 	L.SetField(net, "Http", netHttp)
 	L.SetGlobal("Net", net)
 
-	prep := filepath.Join(*h.x.Config.Conf.ComDir, "_prepare.lua")
+	prep := filepath.Join(*h.x.Config.Conf.Node.ComDir, "_prepare.lua")
 	if _, err := os.Stat(prep); err == nil {
 		if err := L.DoFile(prep); err != nil {
 			return rpc.NewError(rpc.ErrInternalError, err.Error(), req.ID)

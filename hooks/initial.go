@@ -185,6 +185,7 @@ func Init6Hook(cs *corestate.CoreState, x *app.AppX) {
 		}
 		x.Config.Conf.Log.Level = &logs.Levels.Fallback
 	}
+	x.Log.Printf("Starting \"%s\" node", *x.Config.Conf.Node.Name)
 }
 
 func Init7Hook(cs *corestate.CoreState, x *app.AppX) {

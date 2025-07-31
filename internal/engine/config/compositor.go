@@ -43,8 +43,9 @@ func (c *Compositor) LoadConf(path string) error {
 	v.SetConfigType("yaml")
 
 	// defaults
-	v.SetDefault("mode", "dev")
-	v.SetDefault("com_dir", "./com/")
+	v.SetDefault("node.name", "noname")
+	v.SetDefault("node.mode", "dev")
+	v.SetDefault("node.com_dir", "./com/")
 	v.SetDefault("http_server.address", "0.0.0.0")
 	v.SetDefault("http_server.port", "8080")
 	v.SetDefault("http_server.timeout", "5s")

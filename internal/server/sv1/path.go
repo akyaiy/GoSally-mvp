@@ -16,7 +16,7 @@ func (h *HandlerV1) resolveMethodPath(method string) (string, error) {
 
 	parts := strings.Split(method, ">")
 	relPath := filepath.Join(parts...) + ".lua"
-	fullPath := filepath.Join(*h.x.Config.Conf.ComDir, relPath)
+	fullPath := filepath.Join(*h.x.Config.Conf.Node.ComDir, relPath)
 
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 		return "", errors.New(rpc.ErrMethodNotFoundS)

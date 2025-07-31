@@ -18,13 +18,18 @@ type Compositor struct {
 }
 
 type Conf struct {
-	Mode            *string     `mapstructure:"mode"`
-	ComDir          *string     `mapstructure:"com_dir"`
+	Node            *Node       `mapstructure:"node"`
 	HTTPServer      *HTTPServer `mapstructure:"http_server"`
 	TLS             *TLS        `mapstructure:"tls"`
 	Updates         *Updates    `mapstructure:"updates"`
 	Log             *Log        `mapstructure:"log"`
 	DisableWarnings *[]string   `mapstructure:"disable_warnings"`
+}
+
+type Node struct {
+	Mode   *string `mapstructure:"mode"`
+	Name   *string `mapstructure:"name"`
+	ComDir *string `mapstructure:"com_dir"`
 }
 
 type HTTPServer struct {

@@ -16,6 +16,7 @@ import (
 )
 
 var GlobalLevel slog.Level
+
 type levelsStruct struct {
 	Available []string
 	Fallback  string
