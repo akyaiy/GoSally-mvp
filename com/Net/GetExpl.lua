@@ -1,4 +1,5 @@
 local reqAddr
+local logReq = true
 
 if In.Params and In.Params.url then
   reqAddr = In.Params.url
@@ -10,7 +11,7 @@ else
   return
 end
 
-local resp = Net.Http.Get(true, reqAddr)
+local resp = Net.Http.Get(logReq, reqAddr)
 if resp then
   Out.Result.answer = {
     status = resp.status,
