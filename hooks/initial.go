@@ -2,6 +2,7 @@ package hooks
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -9,12 +10,14 @@ import (
 	"log"
 	"log/slog"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"slices"
 	"strings"
 	"syscall"
 	"time"
 
+	"github.com/akyaiy/GoSally-mvp/internal/colors"
 	"github.com/akyaiy/GoSally-mvp/internal/core/corestate"
 	"github.com/akyaiy/GoSally-mvp/internal/core/run_manager"
 	"github.com/akyaiy/GoSally-mvp/internal/core/utils"
@@ -26,15 +29,15 @@ import (
 
 var Compositor *config.Compositor = config.NewCompositor()
 
-func Init0Hook(cs *corestate.CoreState, x *app.AppX) {
+func Init0Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	x.Config = Compositor
 	x.Log.SetOutput(os.Stdout)
-	x.Log.SetPrefix(logs.SetBrightBlack(fmt.Sprintf("(%s) ", cs.Stage)))
+	x.Log.SetPrefix(colors.SetBrightBlack(fmt.Sprintf("(%s) ", cs.Stage)))
 	x.Log.SetFlags(log.Ldate | log.Ltime)
 }
 
 // First stage: pre-init
-func Init1Hook(cs *corestate.CoreState, x *app.AppX) {
+func Init1Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	*cs = *corestate.NewCorestate(&corestate.CoreState{
 		UUID32DirName:      "uuid",
 		NodeBinName:        filepath.Base(os.Args[0]),
@@ -45,8 +48,8 @@ func Init1Hook(cs *corestate.CoreState, x *app.AppX) {
 	})
 }
 
-func Init2Hook(cs *corestate.CoreState, x *app.AppX) {
-	x.Log.SetPrefix(logs.SetYellow(fmt.Sprintf("(%s) ", cs.Stage)))
+func Init2Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
+	x.Log.SetPrefix(colors.SetYellow(fmt.Sprintf("(%s) ", cs.Stage)))
 
 	if err := x.Config.LoadEnv(); err != nil {
 		x.Log.Fatalf("env load error: %s", err)
@@ -61,7 +64,7 @@ func Init2Hook(cs *corestate.CoreState, x *app.AppX) {
 	}
 }
 
-func Init3Hook(cs *corestate.CoreState, x *app.AppX) {
+func Init3Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	uuid32, err := corestate.GetNodeUUID(filepath.Join(cs.MetaDir, "uuid"))
 	if errors.Is(err, fs.ErrNotExist) {
 		if err := corestate.SetNodeUUID(filepath.Join(cs.NodePath, cs.MetaDir, cs.UUID32DirName)); err != nil {
@@ -78,7 +81,7 @@ func Init3Hook(cs *corestate.CoreState, x *app.AppX) {
 	cs.UUID32 = uuid32
 }
 
-func Init4Hook(cs *corestate.CoreState, x *app.AppX) {
+func Init4Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	if *x.Config.Env.ParentStagePID != os.Getpid() {
 		// still pre-init stage
 		runDir, err := run_manager.Create(cs.UUID32)
@@ -129,9 +132,18 @@ func Init4Hook(cs *corestate.CoreState, x *app.AppX) {
 }
 
 // post-init stage
-func Init5Hook(cs *corestate.CoreState, x *app.AppX) {
+func Init5Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
+	nodeApp.Fallback(func(ctx context.Context, cs *corestate.CoreState, x *app.AppX) {
+		x.Log.Println("Cleaning up...")
+
+		if err := run_manager.Clean(); err != nil {
+			x.Log.Printf("%s: Cleanup error: %s", colors.PrintError(), err.Error())
+		}
+		x.Log.Println("bye!")
+	})
+
 	cs.Stage = corestate.StagePostInit
-	x.Log.SetPrefix(logs.SetBlue(fmt.Sprintf("(%s) ", cs.Stage)))
+	x.Log.SetPrefix(colors.SetBlue(fmt.Sprintf("(%s) ", cs.Stage)))
 
 	cs.RunDir = run_manager.Toggle()
 	exist, err := utils.ExistsMatchingDirs(filepath.Join(os.TempDir(), fmt.Sprintf("/*-%s-%s", cs.UUID32, "gosally-runtime")), cs.RunDir)
@@ -172,9 +184,9 @@ func Init5Hook(cs *corestate.CoreState, x *app.AppX) {
 	}
 }
 
-func Init6Hook(cs *corestate.CoreState, x *app.AppX) {
+func Init6Hook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) {
 	if !slices.Contains(*x.Config.Conf.DisableWarnings, "--WNonStdTmpDir") && os.TempDir() != "/tmp" {
-		x.Log.Printf("%s: %s", logs.PrintWarn(), "Non-standard value specified for temporary directory")
+		x.Log.Printf("%s: %s", colors.PrintWarn(), "Non-standard value specified for temporary directory")
 	}
 	if strings.Contains(*x.Config.Conf.Log.OutPath, `%tmp%`) {
 		replaced := strings.ReplaceAll(*x.Config.Conf.Log.OutPath, "%tmp%", filepath.Clean(run_manager.RuntimeDir()))
@@ -182,7 +194,7 @@ func Init6Hook(cs *corestate.CoreState, x *app.AppX) {
 	}
 	if !slices.Contains(logs.Levels.Available, *x.Config.Conf.Log.Level) {
 		if !slices.Contains(*x.Config.Conf.DisableWarnings, "--WUndefLogLevel") {
-			x.Log.Printf("%s: %s", logs.PrintWarn(), fmt.Sprintf("Unknown logging level %s, fallback level: %s", *x.Config.Conf.Log.Level, logs.Levels.Fallback))
+			x.Log.Printf("%s: %s", colors.PrintWarn(), fmt.Sprintf("Unknown logging level %s, fallback level: %s", *x.Config.Conf.Log.Level, logs.Levels.Fallback))
 		}
 		x.Config.Conf.Log.Level = &logs.Levels.Fallback
 	}
@@ -193,28 +205,19 @@ func Init6Hook(cs *corestate.CoreState, x *app.AppX) {
 
 		fmt.Printf("Environment:\n")
 		x.Config.Print(x.Config.Env)
-		ok := true
 
-		fmt.Printf("%s (%s/%s): ", "Is that ok?", logs.SetBrightGreen("Y"), logs.SetBrightRed("n"))
-
-		reader := bufio.NewReader(os.Stdin)
-		input, _ := reader.ReadString('\n')
-		input = strings.TrimSpace(strings.ToLower(input))
-
-		ok = input == "" || input == "y" || input == "yes"
-
-		if !ok {
-			_ = run_manager.Clean()
-			x.Log.Fatalf("Cancel launch")
+		if !askConfirm("Is that ok?", true) {
+			x.Log.Printf("Cancel launch")
+			nodeApp.CallFallback(ctx)
 		}
 	}
 
 	x.Log.Printf("Starting \"%s\" node", *x.Config.Conf.Node.Name)
 }
 
-func Init7Hook(cs *corestate.CoreState, x *app.AppX) {
+func Init7Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	cs.Stage = corestate.StageReady
-	x.Log.SetPrefix(logs.SetGreen(fmt.Sprintf("(%s) ", cs.Stage)))
+	x.Log.SetPrefix(colors.SetGreen(fmt.Sprintf("(%s) ", cs.Stage)))
 
 	x.SLog = new(slog.Logger)
 	newSlog, err := logs.SetupLogger(x.Config.Conf.Log)
@@ -225,26 +228,38 @@ func Init7Hook(cs *corestate.CoreState, x *app.AppX) {
 	*x.SLog = *newSlog
 }
 
-// repl := map[string]string{
-// 			"tmp": filepath.Clean(run_manager.RuntimeDir()),
-// 		}
-// 		re := regexp.MustCompile(`%(\w+)%`)
-// 		result := re.ReplaceAllStringFunc(x.Config.Conf.Log.OutPath, func(match string) string {
-// 			sub := re.FindStringSubmatch(match)
-// 			if len(sub) < 2 {
-// 				return match
-// 			}
-// 			key := sub[1]
-// 			if val, ok := repl[key]; ok {
-// 				return val
-// 			}
-// 			return match
-// 		})
+func askConfirm(prompt string, defaultYes bool) bool {
+	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
-// 		if strings.Contains(x.Config.Conf.Log.OutPath, "%tmp%") {
-// 			relPath := strings.TrimPrefix(result, filepath.Clean(run_manager.RuntimeDir()))
-// 			if err := run_manager.SetDir(relPath); err != nil {
-// 				_ = run_manager.Clean()
-// 				x.Log.Fatalf("Unexpected failure: %s", err.Error())
-// 			}
-// 		}
+	fmt.Print(prompt)
+	if defaultYes {
+		fmt.Printf(" (%s/%s): ", colors.SetBrightGreen("Y"), colors.SetBrightRed("n"))
+	} else {
+		fmt.Printf(" (%s/%s): ", colors.SetBrightGreen("n"), colors.SetBrightRed("Y"))
+	}
+
+	inputChan := make(chan string, 1)
+
+	go func() {
+		reader := bufio.NewReader(os.Stdin)
+		text, _ := reader.ReadString('\n')
+		inputChan <- text
+	}()
+
+	select {
+	case <-ctx.Done():
+		fmt.Println("")
+		nodeApp.CallFallback(ctx)
+		os.Exit(3)
+	case text := <-inputChan:
+		text = strings.TrimSpace(strings.ToLower(text))
+		if text == "" {
+			return defaultYes
+		}
+		if text == "y" || text == "yes" {
+			return true
+		}
+		return false
+	}
+	return defaultYes
+}

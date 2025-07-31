@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/akyaiy/GoSally-mvp/internal/engine/logs"
+	"github.com/akyaiy/GoSally-mvp/internal/colors"
 	"github.com/akyaiy/GoSally-mvp/internal/server/rpc"
 	lua "github.com/yuin/gopher-lua"
 )
@@ -78,13 +78,13 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 
 	L.SetField(logTable, "EventError", L.NewFunction(func(L *lua.LState) int {
 		msg := L.ToString(1)
-		h.x.Log.Printf("%s: %s: %s", logs.PrintError(), path, msg)
+		h.x.Log.Printf("%s: %s: %s", colors.PrintError(), path, msg)
 		return 0
 	}))
 
 	L.SetField(logTable, "EventWarn", L.NewFunction(func(L *lua.LState) int {
 		msg := L.ToString(1)
-		h.x.Log.Printf("%s: %s: %s", logs.PrintWarn(), path, msg)
+		h.x.Log.Printf("%s: %s: %s", colors.PrintWarn(), path, msg)
 		return 0
 	}))
 

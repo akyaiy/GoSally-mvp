@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/akyaiy/GoSally-mvp/hooks"
+	"github.com/akyaiy/GoSally-mvp/internal/colors"
 	"github.com/akyaiy/GoSally-mvp/internal/core/corestate"
-	"github.com/akyaiy/GoSally-mvp/internal/engine/logs"
 	"github.com/spf13/cobra"
 )
 
@@ -24,7 +24,7 @@ scripts in a given directory. For more information, visit: https://gosally.oblat
 
 func Execute() {
 	log.SetOutput(os.Stdout)
-	log.SetPrefix(logs.SetBrightBlack(fmt.Sprintf("(%s) ", corestate.StageNotReady)))
+	log.SetPrefix(colors.SetBrightBlack(fmt.Sprintf("(%s) ", corestate.StageNotReady)))
 	log.SetFlags(log.Ldate | log.Ltime)
 	hooks.Compositor.LoadCMDLine(rootCmd)
 	_ = rootCmd.Execute()

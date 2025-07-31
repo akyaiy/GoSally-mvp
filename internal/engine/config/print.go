@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"time"
+
+	"github.com/akyaiy/GoSally-mvp/internal/colors"
 )
 
 func (c *Compositor) Print(v any) {
@@ -29,9 +31,11 @@ func (c *Compositor) printConfig(v any, prefix string) {
 			}
 		}
 
+		coloredFieldName := colors.SetBrightCyan(fieldName)
+
 		if field.Kind() == reflect.Ptr {
 			if field.IsNil() {
-				fmt.Printf("%s%s: <nil>\n", prefix, fieldName)
+				fmt.Printf("%s%s: %s\n", prefix, coloredFieldName, colors.SetBrightRed("<nil>"))
 				continue
 			}
 			field = field.Elem()
@@ -40,19 +44,29 @@ func (c *Compositor) printConfig(v any, prefix string) {
 		if field.Kind() == reflect.Struct {
 			if field.Type() == reflect.TypeOf(time.Duration(0)) {
 				duration := field.Interface().(time.Duration)
-				fmt.Printf("%s%s: %s\n", prefix, fieldName, duration.String())
+				fmt.Printf("%s%s: %s\n",
+					prefix,
+					coloredFieldName,
+					colors.SetBrightYellow(duration.String()))
 			} else {
-				fmt.Printf("%s%s:\n", prefix, fieldName)
+				fmt.Printf("%s%s:\n", prefix, coloredFieldName)
 				c.printConfig(field.Addr().Interface(), prefix+"  ")
 			}
 		} else if field.Kind() == reflect.Slice {
-			fmt.Printf("%s%s: %v\n", prefix, fieldName, field.Interface())
+			fmt.Printf("%s%s: %s\n",
+				prefix,
+				coloredFieldName,
+				colors.SetBrightYellow(fmt.Sprintf("%v", field.Interface())))
 		} else {
 			value := field.Interface()
+			valueStr := fmt.Sprintf("%v", value)
 			if field.Kind() == reflect.String {
-				value = fmt.Sprintf("\"%s\"", value)
+				valueStr = fmt.Sprintf("\"%s\"", value)
 			}
-			fmt.Printf("%s%s: %v\n", prefix, fieldName, value)
+			fmt.Printf("%s%s: %s\n",
+				prefix,
+				coloredFieldName,
+				colors.SetBrightYellow(valueStr))
 		}
 	}
 }

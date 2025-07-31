@@ -14,7 +14,7 @@ import (
 )
 
 type AppContract interface {
-	InitialHooks(fn ...func(cs *corestate.CoreState, x *AppX))
+	InitialHooks(fn ...func(ctx context.Context, cs *corestate.CoreState, x *AppX))
 	Run(fn func(ctx context.Context, cs *corestate.CoreState, x *AppX) error)
 	Fallback(fn func(ctx context.Context, cs *corestate.CoreState, x *AppX))
 
@@ -22,7 +22,7 @@ type AppContract interface {
 }
 
 type App struct {
-	initHooks []func(cs *corestate.CoreState, x *AppX)
+	initHooks []func(ctx context.Context, cs *corestate.CoreState, x *AppX)
 	runHook   func(ctx context.Context, cs *corestate.CoreState, x *AppX) error
 	fallback  func(ctx context.Context, cs *corestate.CoreState, x *AppX)
 
@@ -47,7 +47,7 @@ func New() AppContract {
 	}
 }
 
-func (a *App) InitialHooks(fn ...func(cs *corestate.CoreState, x *AppX)) {
+func (a *App) InitialHooks(fn ...func(ctx context.Context, cs *corestate.CoreState, x *AppX)) {
 	a.initHooks = append(a.initHooks, fn...)
 }
 
@@ -58,12 +58,12 @@ func (a *App) Fallback(fn func(ctx context.Context, cs *corestate.CoreState, x *
 func (a *App) Run(fn func(ctx context.Context, cs *corestate.CoreState, x *AppX) error) {
 	a.runHook = fn
 
-	for _, hook := range a.initHooks {
-		hook(a.Corestate, a.AppX)
-	}
-
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer stop()
+
+	for _, hook := range a.initHooks {
+		hook(ctx, a.Corestate, a.AppX)
+	}
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -90,5 +90,6 @@ func (a *App) CallFallback(ctx context.Context) {
 		if a.fallback != nil {
 			a.fallback(ctx, a.Corestate, a.AppX)
 		}
+		os.Exit(3)
 	})
 }

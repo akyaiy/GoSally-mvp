@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/akyaiy/GoSally-mvp/internal/colors"
 	"github.com/akyaiy/GoSally-mvp/internal/core/corestate"
 	"github.com/akyaiy/GoSally-mvp/internal/core/run_manager"
 	"github.com/akyaiy/GoSally-mvp/internal/core/update"
@@ -97,7 +98,7 @@ func RunHook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) error {
 
 	nodeApp.Fallback(func(ctx context.Context, cs *corestate.CoreState, x *app.AppX) {
 		if err := srv.Shutdown(ctxMain); err != nil {
-			x.Log.Printf("%s: Failed to stop the server gracefully: %s", logs.PrintError(), err.Error())
+			x.Log.Printf("%s: Failed to stop the server gracefully: %s", colors.PrintError(), err.Error())
 		} else {
 			x.Log.Printf("Server stopped gracefully")
 		}
@@ -105,7 +106,7 @@ func RunHook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) error {
 		x.Log.Println("Cleaning up...")
 
 		if err := run_manager.Clean(); err != nil {
-			x.Log.Printf("%s: Cleanup error: %s", logs.PrintError(), err.Error())
+			x.Log.Printf("%s: Cleanup error: %s", colors.PrintError(), err.Error())
 		}
 		x.Log.Println("bye!")
 	})
@@ -115,27 +116,27 @@ func RunHook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) error {
 		if *x.Config.Conf.TLS.TlsEnabled {
 			listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", *x.Config.Conf.HTTPServer.Address, *x.Config.Conf.HTTPServer.Port))
 			if err != nil {
-				x.Log.Printf("%s: Failed to start TLS listener: %s", logs.PrintError(), err.Error())
+				x.Log.Printf("%s: Failed to start TLS listener: %s", colors.PrintError(), err.Error())
 				cancelMain()
 				return
 			}
 			x.Log.Printf("Serving on %s port %s with TLS... (https://%s%s)", *x.Config.Conf.HTTPServer.Address, *x.Config.Conf.HTTPServer.Port, fmt.Sprintf("%s:%s", *x.Config.Conf.HTTPServer.Address, *x.Config.Conf.HTTPServer.Port), config.ComDirRoute)
 			limitedListener := netutil.LimitListener(listener, 100)
 			if err := srv.ServeTLS(limitedListener, *x.Config.Conf.TLS.CertFile, *x.Config.Conf.TLS.KeyFile); err != nil && !errors.Is(err, http.ErrServerClosed) {
-				x.Log.Printf("%s: Failed to start HTTPS server: %s", logs.PrintError(), err.Error())
+				x.Log.Printf("%s: Failed to start HTTPS server: %s", colors.PrintError(), err.Error())
 				cancelMain()
 			}
 		} else {
 			x.Log.Printf("Serving on %s port %s... (http://%s%s)", *x.Config.Conf.HTTPServer.Address, *x.Config.Conf.HTTPServer.Port, fmt.Sprintf("%s:%s", *x.Config.Conf.HTTPServer.Address, *x.Config.Conf.HTTPServer.Port), config.ComDirRoute)
 			listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", *x.Config.Conf.HTTPServer.Address, *x.Config.Conf.HTTPServer.Port))
 			if err != nil {
-				x.Log.Printf("%s: Failed to start listener: %s", logs.PrintError(), err.Error())
+				x.Log.Printf("%s: Failed to start listener: %s", colors.PrintError(), err.Error())
 				cancelMain()
 				return
 			}
 			limitedListener := netutil.LimitListener(listener, 100)
 			if err := srv.Serve(limitedListener); err != nil && !errors.Is(err, http.ErrServerClosed) {
-				x.Log.Printf("%s: Failed to start HTTP server: %s", logs.PrintError(), err.Error())
+				x.Log.Printf("%s: Failed to start HTTP server: %s", colors.PrintError(), err.Error())
 				cancelMain()
 			}
 		}
