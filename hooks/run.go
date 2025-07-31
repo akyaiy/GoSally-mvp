@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"regexp"
@@ -86,7 +87,7 @@ func RunHook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) error {
 		Handler: r,
 		ErrorLog: log.New(&logs.SlogWriter{
 			Logger: x.SLog,
-			Level:  logs.GlobalLevel,
+			Level:  slog.LevelError,
 		}, "", 0),
 	}
 
