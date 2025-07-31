@@ -19,6 +19,7 @@ import (
 	"github.com/akyaiy/GoSally-mvp/internal/engine/config"
 	"github.com/akyaiy/GoSally-mvp/internal/engine/logs"
 	"github.com/akyaiy/GoSally-mvp/internal/server/gateway"
+	"github.com/akyaiy/GoSally-mvp/internal/server/session"
 	"github.com/akyaiy/GoSally-mvp/internal/server/sv1"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
@@ -62,7 +63,10 @@ func RunHook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) error {
 		Ver:        "v1",
 	})
 
+	session_manager := session.New(*x.Config.Conf.HTTPServer.SessionTTL)
+
 	s := gateway.InitGateway(&gateway.GatewayServerInit{
+		SM: session_manager,
 		CS: cs,
 		X:  x,
 	}, serverv1)
@@ -136,6 +140,8 @@ func RunHook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) error {
 			}
 		}
 	}()
+
+	session_manager.StartCleanup(5 * time.Minute)
 
 	if *x.Config.Conf.Updates.UpdatesEnabled {
 		go func() {

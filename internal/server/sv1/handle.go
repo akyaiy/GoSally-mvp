@@ -7,7 +7,7 @@ import (
 	"github.com/akyaiy/GoSally-mvp/internal/server/rpc"
 )
 
-func (h *HandlerV1) Handle(r *http.Request, req *rpc.RPCRequest) *rpc.RPCResponse {
+func (h *HandlerV1) Handle(sid string, r *http.Request, req *rpc.RPCRequest) *rpc.RPCResponse {
 	if req.Method == "" {
 		h.x.SLog.Info("invalid request received", slog.String("issue", rpc.ErrMethodNotFoundS), slog.String("requested-method", req.Method))
 		return rpc.NewError(rpc.ErrMethodIsMissing, rpc.ErrMethodIsMissingS, req.ID)
@@ -24,5 +24,5 @@ func (h *HandlerV1) Handle(r *http.Request, req *rpc.RPCRequest) *rpc.RPCRespons
 		}
 	}
 
-	return h.handleLUA(r, req, method)
+	return h.handleLUA(sid, r, req, method)
 }

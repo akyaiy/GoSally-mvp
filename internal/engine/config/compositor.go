@@ -48,6 +48,7 @@ func (c *Compositor) LoadConf(path string) error {
 	v.SetDefault("node.com_dir", "./com/")
 	v.SetDefault("http_server.address", "0.0.0.0")
 	v.SetDefault("http_server.port", "8080")
+	v.SetDefault("http_server.session_ttl", "30m")
 	v.SetDefault("http_server.timeout", "5s")
 	v.SetDefault("http_server.idle_timeout", "60s")
 	v.SetDefault("tls.enabled", false)

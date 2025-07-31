@@ -15,13 +15,13 @@ import (
 	lua "github.com/yuin/gopher-lua"
 )
 
-func addInitiatorHeaders(req *http.Request, headers http.Header) {
+func addInitiatorHeaders(sid string, req *http.Request, headers http.Header) {
 	clientIP := req.RemoteAddr
 	if forwardedFor := req.Header.Get("X-Forwarded-For"); forwardedFor != "" {
 		clientIP = forwardedFor
 	}
 	headers.Set("X-Initiator-IP", clientIP)
-
+	headers.Set("X-Session-UUID", sid)
 	headers.Set("X-Initiator-Host", req.Host)
 	headers.Set("X-Initiator-User-Agent", req.UserAgent())
 	headers.Set("X-Initiator-Referer", req.Referer())
@@ -34,7 +34,7 @@ func addInitiatorHeaders(req *http.Request, headers http.Header) {
 // contribute to the development of the code,
 // I will be only glad.
 // TODO: make this huge function more harmonious by dividing responsibilities
-func (h *HandlerV1) handleLUA(r *http.Request, req *rpc.RPCRequest, path string) *rpc.RPCResponse {
+func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, path string) *rpc.RPCResponse {
 	L := lua.NewState()
 	defer L.Close()
 
@@ -104,7 +104,7 @@ func (h *HandlerV1) handleLUA(r *http.Request, req *rpc.RPCRequest, path string)
 			return 2
 		}
 
-		addInitiatorHeaders(r, req.Header)
+		addInitiatorHeaders(sid, r, req.Header)
 
 		client := &http.Client{}
 		resp, err := client.Do(req)
@@ -165,7 +165,7 @@ func (h *HandlerV1) handleLUA(r *http.Request, req *rpc.RPCRequest, path string)
 
 		req.Header.Set("Content-Type", contentType)
 
-		addInitiatorHeaders(r, req.Header)
+		addInitiatorHeaders(sid, r, req.Header)
 
 		client := &http.Client{}
 		resp, err := client.Do(req)

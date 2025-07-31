@@ -9,10 +9,28 @@ import (
 
 	"github.com/akyaiy/GoSally-mvp/internal/core/utils"
 	"github.com/akyaiy/GoSally-mvp/internal/server/rpc"
+	"github.com/google/uuid"
 )
 
 func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	sessionUUID := r.Header.Get("X-Session-UUID")
+	if sessionUUID == "" {
+		sessionUUID = uuid.New().String()
+	}
+
+	w.Header().Set("X-Session-UUID", sessionUUID)
+	if !gs.sm.Add(sessionUUID) {
+		rpc.WriteError(w, &rpc.RPCResponse{
+			Error: map[string]any{
+				"code":    rpc.ErrSessionIsTaken,
+				"message": rpc.ErrSessionIsTakenS,
+			},
+		})
+		return
+	}
+	defer gs.sm.Delete(sessionUUID)
+
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -46,7 +64,7 @@ func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 			gs.x.SLog.Info("invalid request received", slog.String("issue", rpc.ErrParseErrorS))
 			return
 		}
-		resp := gs.Route(r, &single)
+		resp := gs.Route(sessionUUID, r, &single)
 		rpc.WriteResponse(w, resp)
 		return
 	}
@@ -58,7 +76,7 @@ func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 		wg.Add(1)
 		go func(req rpc.RPCRequest) {
 			defer wg.Done()
-			res := gs.Route(r, &req)
+			res := gs.Route(sessionUUID, r, &req)
 			if res != nil {
 				responses <- *res
 			}
@@ -76,7 +94,7 @@ func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (gs *GatewayServer) Route(r *http.Request, req *rpc.RPCRequest) (resp *rpc.RPCResponse) {
+func (gs *GatewayServer) Route(sid string, r *http.Request, req *rpc.RPCRequest) (resp *rpc.RPCResponse) {
 	defer utils.CatchPanicWithFallback(func(rec any) {
 		gs.x.SLog.Error("panic caught in handler", slog.Any("error", rec))
 		resp = rpc.NewError(rpc.ErrInternalError, "Internal server error (panic)", req.ID)
@@ -92,7 +110,7 @@ func (gs *GatewayServer) Route(r *http.Request, req *rpc.RPCRequest) (resp *rpc.
 		return rpc.NewError(rpc.ErrContextVersion, rpc.ErrContextVersionS, req.ID)
 	}
 
-	resp = server.Handle(r, req)
+	resp = server.Handle(sid, r, req)
 	// checks if request is notification
 	if req.ID == nil {
 		return nil

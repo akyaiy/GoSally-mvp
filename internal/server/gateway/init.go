@@ -5,10 +5,12 @@ import (
 
 	"github.com/akyaiy/GoSally-mvp/internal/core/corestate"
 	"github.com/akyaiy/GoSally-mvp/internal/engine/app"
+	"github.com/akyaiy/GoSally-mvp/internal/server/session"
 )
 
 // GeneralServerInit structure only for initialization general server.
 type GatewayServerInit struct {
+	SM *session.SessionManager
 	CS *corestate.CoreState
 	X  *app.AppX
 }
@@ -17,6 +19,7 @@ type GatewayServerInit struct {
 func InitGateway(o *GatewayServerInit, servers ...ServerApiContract) *GatewayServer {
 	general := &GatewayServer{
 		servers: make(map[serversApiVer]ServerApiContract),
+		sm:      o.SM,
 		cs:      o.CS,
 		x:       o.X,
 	}

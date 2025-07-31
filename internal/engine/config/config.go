@@ -35,6 +35,7 @@ type Node struct {
 type HTTPServer struct {
 	Address     *string        `mapstructure:"address"`
 	Port        *string        `mapstructure:"port"`
+	SessionTTL  *time.Duration `mapstructure:"session_ttl"`
 	Timeout     *time.Duration `mapstructure:"timeout"`
 	IdleTimeout *time.Duration `mapstructure:"idle_timeout"`
 }
