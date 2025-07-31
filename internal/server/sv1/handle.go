@@ -24,5 +24,5 @@ func (h *HandlerV1) Handle(r *http.Request, req *rpc.RPCRequest) *rpc.RPCRespons
 		}
 	}
 
-	return h.handleLUA(method, req)
+	return h.handleLUA(r, req, method)
 }

@@ -2,17 +2,32 @@ package sv1
 
 import (
 	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/akyaiy/GoSally-mvp/internal/engine/logs"
 	"github.com/akyaiy/GoSally-mvp/internal/server/rpc"
 	lua "github.com/yuin/gopher-lua"
 )
 
-func (h *HandlerV1) handleLUA(path string, req *rpc.RPCRequest) *rpc.RPCResponse {
+func addInitiatorHeaders(req *http.Request, headers http.Header) {
+	clientIP := req.RemoteAddr
+	if forwardedFor := req.Header.Get("X-Forwarded-For"); forwardedFor != "" {
+		clientIP = forwardedFor
+	}
+	headers.Set("X-Initiator-IP", clientIP)
+
+	headers.Set("X-Initiator-Host", req.Host)
+	headers.Set("X-Initiator-User-Agent", req.UserAgent())
+	headers.Set("X-Initiator-Referer", req.Referer())
+}
+
+func (h *HandlerV1) handleLUA(r *http.Request, req *rpc.RPCRequest, path string) *rpc.RPCResponse {
 	L := lua.NewState()
 	defer L.Close()
 
@@ -67,6 +82,129 @@ func (h *HandlerV1) handleLUA(path string, req *rpc.RPCRequest) *rpc.RPCResponse
 	}))
 
 	L.SetGlobal("Log", logTable)
+
+	net := L.NewTable()
+	netHttp := L.NewTable()
+
+	L.SetField(netHttp, "Get", L.NewFunction(func(L *lua.LState) int {
+		logRequest := L.ToBool(1)
+		url := L.ToString(2)
+
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+
+		addInitiatorHeaders(r, req.Header)
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		defer resp.Body.Close()
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+
+		if logRequest {
+			h.x.SLog.Info("HTTP GET request",
+				slog.String("script", path),
+				slog.String("url", url),
+				slog.Int("status", resp.StatusCode),
+				slog.String("status_text", resp.Status),
+				slog.String("initiator_ip", req.Header.Get("X-Initiator-IP")),
+			)
+		}
+
+		result := L.NewTable()
+		L.SetField(result, "status", lua.LNumber(resp.StatusCode))
+		L.SetField(result, "status_text", lua.LString(resp.Status))
+		L.SetField(result, "body", lua.LString(body))
+		L.SetField(result, "content_length", lua.LNumber(resp.ContentLength))
+
+		headers := L.NewTable()
+		for k, v := range resp.Header {
+			L.SetField(headers, k, ConvertGolangTypesToLua(L, v))
+		}
+		L.SetField(result, "headers", headers)
+
+		L.Push(result)
+		return 1
+	}))
+
+	L.SetField(netHttp, "Post", L.NewFunction(func(L *lua.LState) int {
+		logRequest := L.ToBool(1)
+		url := L.ToString(2)
+		contentType := L.ToString(3)
+		payload := L.ToString(4)
+
+		body := strings.NewReader(payload)
+
+		req, err := http.NewRequest("POST", url, body)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+
+		req.Header.Set("Content-Type", contentType)
+
+		addInitiatorHeaders(r, req.Header)
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		defer resp.Body.Close()
+
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+
+		if logRequest {
+			h.x.SLog.Info("HTTP POST request",
+				slog.String("script", path),
+				slog.String("url", url),
+				slog.String("content_type", contentType),
+				slog.Int("status", resp.StatusCode),
+				slog.String("status_text", resp.Status),
+				slog.String("initiator_ip", req.Header.Get("X-Initiator-IP")),
+			)
+		}
+
+		result := L.NewTable()
+		L.SetField(result, "status", lua.LNumber(resp.StatusCode))
+		L.SetField(result, "status_text", lua.LString(resp.Status))
+		L.SetField(result, "body", lua.LString(respBody))
+		L.SetField(result, "content_length", lua.LNumber(resp.ContentLength))
+
+		headers := L.NewTable()
+		for k, v := range resp.Header {
+			L.SetField(headers, k, ConvertGolangTypesToLua(L, v))
+		}
+		L.SetField(result, "headers", headers)
+
+		L.Push(result)
+		return 1
+	}))
+
+	L.SetField(net, "Http", netHttp)
+	L.SetGlobal("Net", net)
 
 	prep := filepath.Join(*h.x.Config.Conf.ComDir, "_prepare.lua")
 	if _, err := os.Stat(prep); err == nil {
