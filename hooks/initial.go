@@ -45,7 +45,7 @@ func Init1Hook(cs *corestate.CoreState, x *app.AppX) {
 }
 
 func Init2Hook(cs *corestate.CoreState, x *app.AppX) {
-	x.Log.SetPrefix(logs.SetBlue(fmt.Sprintf("(%s) ", cs.Stage)))
+	x.Log.SetPrefix(logs.SetYellow(fmt.Sprintf("(%s) ", cs.Stage)))
 
 	if err := x.Config.LoadEnv(); err != nil {
 		x.Log.Fatalf("env load error: %s", err)
@@ -130,7 +130,7 @@ func Init4Hook(cs *corestate.CoreState, x *app.AppX) {
 // post-init stage
 func Init5Hook(cs *corestate.CoreState, x *app.AppX) {
 	cs.Stage = corestate.StagePostInit
-	x.Log.SetPrefix(logs.SetYellow(fmt.Sprintf("(%s) ", cs.Stage)))
+	x.Log.SetPrefix(logs.SetBlue(fmt.Sprintf("(%s) ", cs.Stage)))
 
 	cs.RunDir = run_manager.Toggle()
 	exist, err := utils.ExistsMatchingDirs(filepath.Join(os.TempDir(), fmt.Sprintf("/*-%s-%s", cs.UUID32, "gosally-runtime")), cs.RunDir)
