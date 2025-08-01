@@ -59,8 +59,8 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 		resultTable := lL.NewTable()
 		lL.SetField(outTable, "result", resultTable)
 
-		lL.SetField(sessionMod, "in", inTable)
-		lL.SetField(sessionMod, "out", outTable)
+		lL.SetField(sessionMod, "request", inTable)
+		lL.SetField(sessionMod, "response", outTable)
 
 		lL.Push(sessionMod)
 		lL.SetField(sessionMod, "__gosally_internal", lua.LString(fmt.Sprint(seed)))
@@ -284,10 +284,10 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 		}, req.ID)
 	}
 
-	outVal := sessionTbl.RawGetString("out")
+	outVal := sessionTbl.RawGetString("response")
 	outTbl, ok := outVal.(*lua.LTable)
 	if !ok {
-		h.x.SLog.Error("script error", slog.String("script", path), slog.String("error", "out is not a table"))
+		h.x.SLog.Error("script error", slog.String("script", path), slog.String("error", "response is not a table"))
 		return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, req.ID)
 	}
 
