@@ -10,7 +10,7 @@ if In.Params and In.Params.about then
   return
 end
 
-local function isValidCommand(name)
+local function isValidName(name)
   return name:match("^[%w]+$") ~= nil
 end
 
@@ -21,8 +21,20 @@ local function scanDirectory(basePath, targetPath)
 
   if handle then
     for filePath in handle:lines() do
-      local fileName = filePath:match("([^/]+)%.lua$")
-      if fileName and isValidCommand(fileName) then
+      local parts = {}
+      for part in filePath:gsub(".lua$", ""):gmatch("[^/]+") do
+        table.insert(parts, part)
+      end
+
+      local allValid = true
+      for _, part in ipairs(parts) do
+        if not isValidName(part) then
+          allValid = false
+          break
+        end
+      end
+
+      if allValid then
         local relPath = filePath:gsub("^"..basePath.."/", ""):gsub(".lua$", ""):gsub("/", ">")
         table.insert(res, relPath)
       end
