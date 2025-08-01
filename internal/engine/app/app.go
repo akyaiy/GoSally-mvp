@@ -90,6 +90,6 @@ func (a *App) CallFallback(ctx context.Context) {
 		if a.fallback != nil {
 			a.fallback(ctx, a.Corestate, a.AppX)
 		}
-		os.Exit(3)
+		os.Exit(0)
 	})
 }
