@@ -193,8 +193,10 @@ func InitConfigReplHook(_ context.Context, cs *corestate.CoreState, x *app.AppX)
 	replacements := map[string]any{
 		"%tmp%":    filepath.Clean(run_manager.RuntimeDir()),
 		"%path%":   *x.Config.Env.NodePath,
-		"%stdout%": os.Stdout,
-		"%stderr%": os.Stderr,
+		"%stdout%": "_1STDout",
+		"%stderr%": "_2STDerr",
+		"%1%":      "_1STDout",
+		"%2%":      "_2STDerr",
 	}
 
 	processConfig(&x.Config.Conf, replacements)
@@ -301,10 +303,32 @@ func processConfig(conf any, replacements map[string]any) error {
 
 	case reflect.Ptr:
 		if !val.IsNil() {
-			return processConfig(val.Interface(), replacements)
+			elem := val.Elem()
+			if elem.Kind() == reflect.String {
+				str := elem.String()
+				if replacement, exists := replacements[str]; exists {
+					strVal, err := toString(replacement)
+					if err != nil {
+						return fmt.Errorf("cannot convert replacement to string: %v", err)
+					}
+					elem.SetString(strVal)
+				} else {
+					for placeholder, replacement := range replacements {
+						if strings.Contains(str, placeholder) {
+							replacementStr, err := toString(replacement)
+							if err != nil {
+								return fmt.Errorf("invalid replacement for %q: %v", placeholder, err)
+							}
+							newStr := strings.ReplaceAll(str, placeholder, replacementStr)
+							elem.SetString(newStr)
+						}
+					}
+				}
+			} else {
+				return processConfig(elem.Addr().Interface(), replacements)
+			}
 		}
 	}
-
 	return nil
 }
 
