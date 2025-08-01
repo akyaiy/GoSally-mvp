@@ -12,8 +12,8 @@
 ---@field error { code: integer, message: string, data: Any }? Optional error info
 
 ---@class SessionModule
----@field in SessionIn Input context (read-only)
----@field out SessionOut Output context (write results/errors)
+---@field request SessionIn Input context (read-only)
+---@field response SessionOut Output context (write results/errors)
 
 --- Global log module interface
 ---@class LogModule
