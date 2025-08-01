@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/akyaiy/GoSally-mvp/internal/core/corestate"
@@ -14,7 +15,7 @@ type serversApiVer string
 
 type ServerApiContract interface {
 	GetVersion() string
-	Handle(sid string, r *http.Request, req *rpc.RPCRequest) *rpc.RPCResponse
+	Handle(ctx context.Context, sid string, r *http.Request, req *rpc.RPCRequest) *rpc.RPCResponse
 }
 
 // GeneralServer implements the GeneralServerApiContract and serves as a router for different API versions.
