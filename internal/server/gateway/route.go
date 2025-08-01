@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -13,6 +14,8 @@ import (
 )
 
 func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context() // TODO
+
 	w.Header().Set("Content-Type", "application/json")
 	sessionUUID := r.Header.Get("X-Session-UUID")
 	if sessionUUID == "" {
@@ -64,7 +67,11 @@ func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 			gs.x.SLog.Info("invalid request received", slog.String("issue", rpc.ErrParseErrorS))
 			return
 		}
-		resp := gs.Route(sessionUUID, r, &single)
+		resp := gs.Route(ctx, sessionUUID, r, &single)
+		if resp == nil {
+			w.Write([]byte(""))
+			return
+		}
 		rpc.WriteResponse(w, resp)
 		return
 	}
@@ -76,7 +83,7 @@ func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 		wg.Add(1)
 		go func(req rpc.RPCRequest) {
 			defer wg.Done()
-			res := gs.Route(sessionUUID, r, &req)
+			res := gs.Route(ctx, sessionUUID, r, &req)
 			if res != nil {
 				responses <- *res
 			}
@@ -91,10 +98,12 @@ func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(result) > 0 {
 		json.NewEncoder(w).Encode(result)
+	} else {
+		w.Write([]byte("[]"))
 	}
 }
 
-func (gs *GatewayServer) Route(sid string, r *http.Request, req *rpc.RPCRequest) (resp *rpc.RPCResponse) {
+func (gs *GatewayServer) Route(ctx context.Context, sid string, r *http.Request, req *rpc.RPCRequest) (resp *rpc.RPCResponse) {
 	defer utils.CatchPanicWithFallback(func(rec any) {
 		gs.x.SLog.Error("panic caught in handler", slog.Any("error", rec))
 		resp = rpc.NewError(rpc.ErrInternalError, "Internal server error (panic)", req.ID)
@@ -110,10 +119,10 @@ func (gs *GatewayServer) Route(sid string, r *http.Request, req *rpc.RPCRequest)
 		return rpc.NewError(rpc.ErrContextVersion, rpc.ErrContextVersionS, req.ID)
 	}
 
-	resp = server.Handle(sid, r, req)
 	// checks if request is notification
 	if req.ID == nil {
+		go server.Handle(ctx, sid, r, req)
 		return nil
 	}
-	return resp
+	return server.Handle(ctx, sid, r, req)
 }

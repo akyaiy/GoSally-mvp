@@ -1,5 +1,7 @@
 package sv1
 
+// TODO: make a lua state pool using sync.Pool
+
 import (
 	"fmt"
 	"io"
