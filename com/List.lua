@@ -1,7 +1,9 @@
 -- com/List.lua
 
-if In.Params and In.Params.about then
-  Out.Result = {
+local session = require("session")
+
+if session.request and session.request.params and session.request.params.about then
+  session.response.result = {
     description = "Returns a list of available methods",
     params = {
       layer = "select which layer list to display"
@@ -46,8 +48,8 @@ local function scanDirectory(basePath, targetPath)
 end
 
 local basePath = "com"
-local layer = In.Params and In.Params.layer and In.Params.layer:gsub(">", "/") or nil
+local layer = session.request and session.request.params.layer and session.request.params.layer:gsub(">", "/") or nil
 
-Out.Result = {
+session.response.result = {
   answer = layer and scanDirectory(basePath, layer) or scanDirectory(basePath, "")
 }
