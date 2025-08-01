@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math/rand/v2"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -40,202 +41,260 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 	L := lua.NewState()
 	defer L.Close()
 
-	inTable := L.NewTable()
-	paramsTable := L.NewTable()
-	if fetchedParams, ok := req.Params.(map[string]any); ok {
-		for k, v := range fetchedParams {
-			L.SetField(paramsTable, k, ConvertGolangTypesToLua(L, v))
+	seed := rand.Int()
+
+	loadSessionMod := func(lL *lua.LState) int {
+		h.x.SLog.Debug("import module session", slog.String("script", path))
+		sessionMod := lL.NewTable()
+		inTable := lL.NewTable()
+		paramsTable := lL.NewTable()
+		if fetchedParams, ok := req.Params.(map[string]any); ok {
+			for k, v := range fetchedParams {
+				lL.SetField(paramsTable, k, ConvertGolangTypesToLua(lL, v))
+			}
 		}
-	}
-	L.SetField(inTable, "Params", paramsTable)
-	L.SetGlobal("In", inTable)
+		lL.SetField(inTable, "params", paramsTable)
 
-	outTable := L.NewTable()
-	resultTable := L.NewTable()
-	L.SetField(outTable, "Result", resultTable)
-	L.SetGlobal("Out", outTable)
+		outTable := lL.NewTable()
+		resultTable := lL.NewTable()
+		lL.SetField(outTable, "result", resultTable)
 
-	logTable := L.NewTable()
+		lL.SetField(sessionMod, "in", inTable)
+		lL.SetField(sessionMod, "out", outTable)
 
-	logFuncs := map[string]func(string, ...any){
-		"Info":  h.x.SLog.Info,
-		"Debug": h.x.SLog.Debug,
-		"Error": h.x.SLog.Error,
-		"Warn":  h.x.SLog.Warn,
+		lL.Push(sessionMod)
+		lL.SetField(sessionMod, "__gosally_internal", lua.LString(fmt.Sprint(seed)))
+		return 1
 	}
 
-	for name, logFunc := range logFuncs {
-		L.SetField(logTable, name, L.NewFunction(func(L *lua.LState) int {
-			msg := L.ToString(1)
-			logFunc(fmt.Sprintf("the script says: %s", msg), slog.String("script", path))
+	loadLogMod := func(lL *lua.LState) int {
+		h.x.SLog.Debug("import module log", slog.String("script", path))
+		logMod := lL.NewTable()
+
+		logFuncs := map[string]func(string, ...any){
+			"info":  h.x.SLog.Info,
+			"debug": h.x.SLog.Debug,
+			"error": h.x.SLog.Error,
+			"warn":  h.x.SLog.Warn,
+		}
+
+		for name, logFunc := range logFuncs {
+			fun := logFunc
+			lL.SetField(logMod, name, lL.NewFunction(func(lL *lua.LState) int {
+				msg := lL.ToString(1)
+				fun(fmt.Sprintf("the script says: %s", msg), slog.String("script", path))
+				return 0
+			}))
+		}
+
+		lL.SetField(logMod, "event", lL.NewFunction(func(lL *lua.LState) int {
+			msg := lL.ToString(1)
+			h.x.Log.Printf("%s: %s", path, msg)
 			return 0
 		}))
+
+		lL.SetField(logMod, "event_error", lL.NewFunction(func(lL *lua.LState) int {
+			msg := lL.ToString(1)
+			h.x.Log.Printf("%s: %s: %s", colors.PrintError(), path, msg)
+			return 0
+		}))
+
+		lL.SetField(logMod, "event_warn", lL.NewFunction(func(lL *lua.LState) int {
+			msg := lL.ToString(1)
+			h.x.Log.Printf("%s: %s: %s", colors.PrintWarn(), path, msg)
+			return 0
+		}))
+
+		lL.Push(logMod)
+		lL.SetField(logMod, "__gosally_internal", lua.LString(fmt.Sprint(seed)))
+		return 1
 	}
 
-	L.SetField(logTable, "Event", L.NewFunction(func(L *lua.LState) int {
-		msg := L.ToString(1)
-		h.x.Log.Printf("%s: %s", path, msg)
-		return 0
-	}))
+	loadNetMod := func(lL *lua.LState) int {
+		h.x.SLog.Debug("import module net", slog.String("script", path))
+		netMod := lL.NewTable()
+		netModhttp := lL.NewTable()
 
-	L.SetField(logTable, "EventError", L.NewFunction(func(L *lua.LState) int {
-		msg := L.ToString(1)
-		h.x.Log.Printf("%s: %s: %s", colors.PrintError(), path, msg)
-		return 0
-	}))
+		lL.SetField(netModhttp, "get_request", lL.NewFunction(func(lL *lua.LState) int {
+			logRequest := lL.ToBool(1)
+			url := lL.ToString(2)
 
-	L.SetField(logTable, "EventWarn", L.NewFunction(func(L *lua.LState) int {
-		msg := L.ToString(1)
-		h.x.Log.Printf("%s: %s: %s", colors.PrintWarn(), path, msg)
-		return 0
-	}))
+			req, err := http.NewRequest("GET", url, nil)
+			if err != nil {
+				lL.Push(lua.LNil)
+				lL.Push(lua.LString(err.Error()))
+				return 2
+			}
 
-	L.SetGlobal("Log", logTable)
+			addInitiatorHeaders(sid, r, req.Header)
 
-	net := L.NewTable()
-	netHttp := L.NewTable()
+			client := &http.Client{}
+			resp, err := client.Do(req)
+			if err != nil {
+				lL.Push(lua.LNil)
+				lL.Push(lua.LString(err.Error()))
+				return 2
+			}
+			defer resp.Body.Close()
 
-	L.SetField(netHttp, "Get", L.NewFunction(func(L *lua.LState) int {
-		logRequest := L.ToBool(1)
-		url := L.ToString(2)
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				lL.Push(lua.LNil)
+				lL.Push(lua.LString(err.Error()))
+				return 2
+			}
 
-		req, err := http.NewRequest("GET", url, nil)
-		if err != nil {
-			L.Push(lua.LNil)
-			L.Push(lua.LString(err.Error()))
-			return 2
-		}
+			if logRequest {
+				h.x.SLog.Info("HTTP GET request",
+					slog.String("script", path),
+					slog.String("url", url),
+					slog.Int("status", resp.StatusCode),
+					slog.String("status_text", resp.Status),
+					slog.String("initiator_ip", req.Header.Get("X-Initiator-IP")),
+				)
+			}
 
-		addInitiatorHeaders(sid, r, req.Header)
+			result := lL.NewTable()
+			lL.SetField(result, "status", lua.LNumber(resp.StatusCode))
+			lL.SetField(result, "status_text", lua.LString(resp.Status))
+			lL.SetField(result, "body", lua.LString(body))
+			lL.SetField(result, "content_length", lua.LNumber(resp.ContentLength))
 
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		if err != nil {
-			L.Push(lua.LNil)
-			L.Push(lua.LString(err.Error()))
-			return 2
-		}
-		defer resp.Body.Close()
+			headers := lL.NewTable()
+			for k, v := range resp.Header {
+				lL.SetField(headers, k, ConvertGolangTypesToLua(lL, v))
+			}
+			lL.SetField(result, "headers", headers)
 
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			L.Push(lua.LNil)
-			L.Push(lua.LString(err.Error()))
-			return 2
-		}
+			lL.Push(result)
+			return 1
+		}))
 
-		if logRequest {
-			h.x.SLog.Info("HTTP GET request",
-				slog.String("script", path),
-				slog.String("url", url),
-				slog.Int("status", resp.StatusCode),
-				slog.String("status_text", resp.Status),
-				slog.String("initiator_ip", req.Header.Get("X-Initiator-IP")),
-			)
-		}
+		lL.SetField(netModhttp, "post_request", lL.NewFunction(func(lL *lua.LState) int {
+			logRequest := lL.ToBool(1)
+			url := lL.ToString(2)
+			contentType := lL.ToString(3)
+			payload := lL.ToString(4)
 
-		result := L.NewTable()
-		L.SetField(result, "status", lua.LNumber(resp.StatusCode))
-		L.SetField(result, "status_text", lua.LString(resp.Status))
-		L.SetField(result, "body", lua.LString(body))
-		L.SetField(result, "content_length", lua.LNumber(resp.ContentLength))
+			body := strings.NewReader(payload)
 
-		headers := L.NewTable()
-		for k, v := range resp.Header {
-			L.SetField(headers, k, ConvertGolangTypesToLua(L, v))
-		}
-		L.SetField(result, "headers", headers)
+			req, err := http.NewRequest("POST", url, body)
+			if err != nil {
+				lL.Push(lua.LNil)
+				lL.Push(lua.LString(err.Error()))
+				return 2
+			}
 
-		L.Push(result)
+			req.Header.Set("Content-Type", contentType)
+
+			addInitiatorHeaders(sid, r, req.Header)
+
+			client := &http.Client{}
+			resp, err := client.Do(req)
+			if err != nil {
+				lL.Push(lua.LNil)
+				lL.Push(lua.LString(err.Error()))
+				return 2
+			}
+			defer resp.Body.Close()
+
+			respBody, err := io.ReadAll(resp.Body)
+			if err != nil {
+				lL.Push(lua.LNil)
+				lL.Push(lua.LString(err.Error()))
+				return 2
+			}
+
+			if logRequest {
+				h.x.SLog.Info("HTTP POST request",
+					slog.String("script", path),
+					slog.String("url", url),
+					slog.String("content_type", contentType),
+					slog.Int("status", resp.StatusCode),
+					slog.String("status_text", resp.Status),
+					slog.String("initiator_ip", req.Header.Get("X-Initiator-IP")),
+				)
+			}
+
+			result := lL.NewTable()
+			lL.SetField(result, "status", lua.LNumber(resp.StatusCode))
+			lL.SetField(result, "status_text", lua.LString(resp.Status))
+			lL.SetField(result, "body", lua.LString(respBody))
+			lL.SetField(result, "content_length", lua.LNumber(resp.ContentLength))
+
+			headers := lL.NewTable()
+			for k, v := range resp.Header {
+				lL.SetField(headers, k, ConvertGolangTypesToLua(lL, v))
+			}
+			lL.SetField(result, "headers", headers)
+
+			lL.Push(result)
+			return 1
+		}))
+
+		lL.SetField(netMod, "http", netModhttp)
+
+		lL.Push(netMod)
+		lL.SetField(netMod, "__gosally_internal", lua.LString(fmt.Sprint(seed)))
 		return 1
-	}))
+	}
 
-	L.SetField(netHttp, "Post", L.NewFunction(func(L *lua.LState) int {
-		logRequest := L.ToBool(1)
-		url := L.ToString(2)
-		contentType := L.ToString(3)
-		payload := L.ToString(4)
-
-		body := strings.NewReader(payload)
-
-		req, err := http.NewRequest("POST", url, body)
-		if err != nil {
-			L.Push(lua.LNil)
-			L.Push(lua.LString(err.Error()))
-			return 2
-		}
-
-		req.Header.Set("Content-Type", contentType)
-
-		addInitiatorHeaders(sid, r, req.Header)
-
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		if err != nil {
-			L.Push(lua.LNil)
-			L.Push(lua.LString(err.Error()))
-			return 2
-		}
-		defer resp.Body.Close()
-
-		respBody, err := io.ReadAll(resp.Body)
-		if err != nil {
-			L.Push(lua.LNil)
-			L.Push(lua.LString(err.Error()))
-			return 2
-		}
-
-		if logRequest {
-			h.x.SLog.Info("HTTP POST request",
-				slog.String("script", path),
-				slog.String("url", url),
-				slog.String("content_type", contentType),
-				slog.Int("status", resp.StatusCode),
-				slog.String("status_text", resp.Status),
-				slog.String("initiator_ip", req.Header.Get("X-Initiator-IP")),
-			)
-		}
-
-		result := L.NewTable()
-		L.SetField(result, "status", lua.LNumber(resp.StatusCode))
-		L.SetField(result, "status_text", lua.LString(resp.Status))
-		L.SetField(result, "body", lua.LString(respBody))
-		L.SetField(result, "content_length", lua.LNumber(resp.ContentLength))
-
-		headers := L.NewTable()
-		for k, v := range resp.Header {
-			L.SetField(headers, k, ConvertGolangTypesToLua(L, v))
-		}
-		L.SetField(result, "headers", headers)
-
-		L.Push(result)
-		return 1
-	}))
-
-	L.SetField(net, "Http", netHttp)
-	L.SetGlobal("Net", net)
+	L.PreloadModule("session", loadSessionMod)
+	L.PreloadModule("log", loadLogMod)
+	L.PreloadModule("net", loadNetMod)
 
 	prep := filepath.Join(*h.x.Config.Conf.Node.ComDir, "_prepare.lua")
 	if _, err := os.Stat(prep); err == nil {
 		if err := L.DoFile(prep); err != nil {
-			return rpc.NewError(rpc.ErrInternalError, err.Error(), req.ID)
+			h.x.SLog.Error("script error", slog.String("script", path), slog.String("error", err.Error()))
+			return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, req.ID)
 		}
 	}
 	if err := L.DoFile(path); err != nil {
-		return rpc.NewError(rpc.ErrInternalError, err.Error(), req.ID)
+		h.x.SLog.Error("script error", slog.String("script", path), slog.String("error", err.Error()))
+		return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, req.ID)
 	}
 
-	lv := L.GetGlobal("Out")
-	outTbl, ok := lv.(*lua.LTable)
+	pkg := L.GetGlobal("package")
+	pkgTbl, ok := pkg.(*lua.LTable)
 	if !ok {
-		return rpc.NewError(rpc.ErrInternalError, "Out is not a table", req.ID)
+		h.x.SLog.Error("script error", slog.String("script", path), slog.String("error", "package not found"))
+		return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, req.ID)
 	}
 
-	// Check if Out.Error exists
-	if errVal := outTbl.RawGetString("Error"); errVal != lua.LNil {
+	loaded := pkgTbl.RawGetString("loaded")
+	loadedTbl, ok := loaded.(*lua.LTable)
+	if !ok {
+		h.x.SLog.Error("script error", slog.String("script", path), slog.String("error", "package.loaded not found"))
+		return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, req.ID)
+	}
+
+	sessionVal := loadedTbl.RawGetString("session")
+	sessionTbl, ok := sessionVal.(*lua.LTable)
+	if !ok {
+		return rpc.NewResponse(map[string]any{
+			"responsible-node": h.cs.UUID32,
+		}, req.ID)
+	}
+
+	tag := sessionTbl.RawGetString("__gosally_internal")
+	if tag.Type() != lua.LTString || tag.String() != fmt.Sprint(seed) {
+		return rpc.NewResponse(map[string]any{
+			"responsible-node": h.cs.UUID32,
+		}, req.ID)
+	}
+
+	outVal := sessionTbl.RawGetString("out")
+	outTbl, ok := outVal.(*lua.LTable)
+	if !ok {
+		h.x.SLog.Error("script error", slog.String("script", path), slog.String("error", "out is not a table"))
+		return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, req.ID)
+	}
+
+	if errVal := outTbl.RawGetString("error"); errVal != lua.LNil {
 		if errTbl, ok := errVal.(*lua.LTable); ok {
 			code := rpc.ErrInternalError
-			message := "Internal script error"
+			message := rpc.ErrInternalErrorS
 			if c := errTbl.RawGetString("code"); c.Type() == lua.LTNumber {
 				code = int(c.(lua.LNumber))
 			}
@@ -245,21 +304,16 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 			h.x.SLog.Error("the script terminated with an error", slog.String("code", strconv.Itoa(code)), slog.String("message", message))
 			return rpc.NewError(code, message, req.ID)
 		}
-		return rpc.NewError(rpc.ErrInternalError, "Out.Error is not a table", req.ID)
+		return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, req.ID)
 	}
 
-	// Otherwise, parse Out.Result
-	resultVal := outTbl.RawGetString("Result")
-	resultTbl, ok := resultVal.(*lua.LTable)
-	if !ok {
-		return rpc.NewError(rpc.ErrInternalError, "Out.Result is not a table", req.ID)
+	resultVal := outTbl.RawGetString("result")
+	payload := make(map[string]any)
+	if tbl, ok := resultVal.(*lua.LTable); ok {
+		tbl.ForEach(func(k, v lua.LValue) { payload[k.String()] = ConvertLuaTypesToGolang(v) })
+	} else {
+		payload["message"] = ConvertLuaTypesToGolang(resultVal)
 	}
-
-	out := make(map[string]any)
-	resultTbl.ForEach(func(key lua.LValue, value lua.LValue) {
-		out[key.String()] = ConvertLuaTypesToGolang(value)
-	})
-
-	out["responsible-node"] = h.cs.UUID32
-	return rpc.NewResponse(out, req.ID)
+	payload["responsible-node"] = h.cs.UUID32
+	return rpc.NewResponse(payload, req.ID)
 }
