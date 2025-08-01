@@ -58,7 +58,7 @@ func SetupLogger(o *config.Log) (*slog.Logger, error) {
 		handlerOpts.Level = slog.LevelInfo
 	}
 
-	switch  o.OutPath{
+	switch o.OutPath {
 	case 1:
 		writer = os.Stdout
 	case 2:
