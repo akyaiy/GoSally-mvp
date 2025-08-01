@@ -5,11 +5,11 @@
 
 --- Global session module interface
 ---@class SessionModule
----@field request AnyTable     Input context (read-only)
----@field request.params AnyTable     Request parameters
----@field response AnyTable    Output context (write results/errors)
----@field response.result Any|string?  Result payload (table or primitive)
----@field response.error { code: integer, message: string, data: any }?  Optional error info
+---@field in AnyTable     Input context (read-only)
+---@field in.params AnyTable     Request parameters
+---@field out AnyTable    Output context (write results/errors)
+---@field out.result Any|string?  Result payload (table or primitive)
+---@field out.error { code: integer, message: string }?  Optional error info
 
 --- Global log module interface
 ---@class LogModule
@@ -36,12 +36,14 @@
 ---@class NetModule
 ---@field http HttpModule       HTTP client functions
 
---- Exposed globals
+--- Global session variable
 ---@type SessionModule
-session = session or {}
+_G.session = _G.session or {}
 
+--- Global log variable
 ---@type LogModule
-log = log or {}
+_G.log = _G.log or {}
 
+--- Global net variable
 ---@type NetModule
-net = net or {}
+_G.net = _G.net or {}
