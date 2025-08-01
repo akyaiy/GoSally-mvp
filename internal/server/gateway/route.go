@@ -26,8 +26,8 @@ func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 	if !gs.sm.Add(sessionUUID) {
 		rpc.WriteError(w, &rpc.RPCResponse{
 			Error: map[string]any{
-				"code":    rpc.ErrSessionIsTaken,
-				"message": rpc.ErrSessionIsTakenS,
+				"code":    rpc.ErrSessionIsBusy,
+				"message": rpc.ErrSessionIsBusyS,
 			},
 		})
 		return
