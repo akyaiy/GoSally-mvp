@@ -6,6 +6,7 @@ package logs
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -57,9 +58,30 @@ func SetupLogger(o *config.Log) (*slog.Logger, error) {
 		handlerOpts.Level = slog.LevelInfo
 	}
 
-	if *o.OutPath != "" {
+	switch  o.OutPath{
+	case 1:
+		writer = os.Stdout
+	case 2:
+		writer = os.Stderr
+	case os.Stdout:
+		writer = os.Stdout
+	case os.Stderr:
+		writer = os.Stderr
+	default:
+		var path string
+		switch v := o.OutPath.(type) {
+		case string:
+			path = v
+		case int, int64, float64:
+			path = fmt.Sprint(v)
+		case fmt.Stringer:
+			path = v.String()
+		default:
+			path = fmt.Sprint(v)
+		}
+
 		logFile := &lumberjack.Logger{
-			Filename:   filepath.Join(*o.OutPath, "event.log"),
+			Filename:   filepath.Join(path, "event.log"),
 			MaxSize:    10,
 			MaxBackups: 5,
 			MaxAge:     28,
