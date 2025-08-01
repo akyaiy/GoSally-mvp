@@ -1,59 +1,47 @@
----@diagnostic disable: missing-fields, missing-return
----@alias AnyTable table<string, any>
+--@diagnostic disable: missing-fields, missing-return
 
----@type AnyTable
-In = {
-	Params = {},
-}
+---@alias Any any
+---@alias AnyTable table<string, Any>
 
----@type AnyTable
-Out = {
-	Result = {},
-}
+--- Global session module interface
+---@class SessionModule
+---@field request AnyTable     Input context (read-only)
+---@field request.params AnyTable     Request parameters
+---@field response AnyTable    Output context (write results/errors)
+---@field response.result Any|string?  Result payload (table or primitive)
+---@field response.error { code: integer, message: string }?  Optional error info
 
----@class Log
----@field Info fun(msg: string)
----@field Debug fun(msg: string)
----@field Error fun(msg: string)
----@field Warn fun(msg: string)
----@field Event fun(msg: string)
----@field EventError fun(msg: string)
----@field EventWarn fun(msg: string)
+--- Global log module interface
+---@class LogModule
+---@field info fun(msg: string)                    Log informational message
+---@field debug fun(msg: string)                   Log debug message
+---@field error fun(msg: string)                   Log error message
+---@field warn fun(msg: string)                    Log warning message
+---@field event fun(msg: string)                   Log event (generic)
+---@field event_error fun(msg: string)             Log event error
+---@field event_warn fun(msg: string)              Log event warning
 
----@type Log
-Log = {}
-
+--- Global net module interface
 ---@class HttpResponse
----@field status integer HTTP status code
----@field status_text string HTTP status text
----@field body string Response body
+---@field status integer        HTTP status code
+---@field status_text string    HTTP status text
+---@field body string           Response body
 ---@field content_length integer Content length
----@field headers table<string, string|string[]> Response headers
+---@field headers AnyTable      Map of headers
 
----@class Http
----@field Get fun(log: boolean, url: string): HttpResponse, string? Makes HTTP GET request
----@field Post fun(log: boolean, url: string, content_type: string, payload: string): HttpResponse, string? Makes HTTP POST request
+---@class HttpModule
+---@field get fun(log: boolean, url: string): HttpResponse, string?   Perform GET
+---@field post fun(log: boolean, url: string, content_type: string, payload: string): HttpResponse, string?  Perform POST
 
----@class Net
----@field Http Http HTTP client methods
+---@class NetModule
+---@field http HttpModule       HTTP client functions
 
----@type Net
-Net = {
-    Http = {
-        ---Makes HTTP GET request
-        ---@param log boolean Whether to log the request
-        ---@param url string URL to request
-        ---@return HttpResponse response
-        ---@return string? error
-        Get = function(log, url) end,
+--- Exposed globals
+---@type SessionModule
+session = session or {}
 
-        ---Makes HTTP POST request
-        ---@param log boolean Whether to log the request
-        ---@param url string URL to request
-        ---@param content_type string Content-Type header
-        ---@param payload string Request body
-        ---@return HttpResponse response
-        ---@return string? error
-        Post = function(log, url, content_type, payload) end
-    }
-}
+---@type LogModule
+log = log or {}
+
+---@type NetModule
+net = net or {}
