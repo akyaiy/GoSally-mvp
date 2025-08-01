@@ -28,16 +28,16 @@ import (
 	"golang.org/x/net/netutil"
 )
 
-var nodeApp = app.New()
+var NodeApp = app.New()
 
 func Run(cmd *cobra.Command, args []string) {
-	nodeApp.InitialHooks(
+	NodeApp.InitialHooks(
 		Init0Hook, Init1Hook, Init2Hook,
 		Init3Hook, Init4Hook, Init5Hook,
-		Init6Hook, Init7Hook,
+		Init6Hook, Init7Hook, Init8Hook,
 	)
 
-	nodeApp.Run(RunHook)
+	NodeApp.Run(RunHook)
 }
 
 func RunHook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) error {
@@ -96,7 +96,7 @@ func RunHook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) error {
 		}, "", 0),
 	}
 
-	nodeApp.Fallback(func(ctx context.Context, cs *corestate.CoreState, x *app.AppX) {
+	NodeApp.Fallback(func(ctx context.Context, cs *corestate.CoreState, x *app.AppX) {
 		if err := srv.Shutdown(ctxMain); err != nil {
 			x.Log.Printf("%s: Failed to stop the server gracefully: %s", colors.PrintError(), err.Error())
 		} else {
@@ -171,6 +171,6 @@ func RunHook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) error {
 	}
 
 	<-ctxMain.Done()
-	nodeApp.CallFallback(ctx)
+	NodeApp.CallFallback(ctx)
 	return nil
 }
