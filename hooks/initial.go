@@ -30,7 +30,7 @@ import (
 
 var Compositor *config.Compositor = config.NewCompositor()
 
-func Init0Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
+func InitGlobalLoggerHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	x.Config = Compositor
 	x.Log.SetOutput(os.Stdout)
 	x.Log.SetPrefix(colors.SetBrightBlack(fmt.Sprintf("(%s) ", cs.Stage)))
@@ -38,7 +38,7 @@ func Init0Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 }
 
 // First stage: pre-init
-func Init1Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
+func InitCorestateHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	*cs = *corestate.NewCorestate(&corestate.CoreState{
 		UUID32DirName:      "uuid",
 		NodeBinName:        filepath.Base(os.Args[0]),
@@ -49,7 +49,7 @@ func Init1Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	})
 }
 
-func Init2Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
+func InitConfigLoadHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	x.Log.SetPrefix(colors.SetYellow(fmt.Sprintf("(%s) ", cs.Stage)))
 
 	if err := x.Config.LoadEnv(); err != nil {
@@ -65,7 +65,7 @@ func Init2Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	}
 }
 
-func Init3Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
+func InitUUUDHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	uuid32, err := corestate.GetNodeUUID(filepath.Join(cs.MetaDir, "uuid"))
 	if errors.Is(err, fs.ErrNotExist) {
 		if err := corestate.SetNodeUUID(filepath.Join(cs.NodePath, cs.MetaDir, cs.UUID32DirName)); err != nil {
@@ -82,7 +82,7 @@ func Init3Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	cs.UUID32 = uuid32
 }
 
-func Init4Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
+func InitRuntimeHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	if *x.Config.Env.ParentStagePID != os.Getpid() {
 		// still pre-init stage
 		runDir, err := run_manager.Create(cs.UUID32)
@@ -133,7 +133,7 @@ func Init4Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 }
 
 // post-init stage
-func Init5Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
+func InitRunlockHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	NodeApp.Fallback(func(ctx context.Context, cs *corestate.CoreState, x *app.AppX) {
 		x.Log.Println("Cleaning up...")
 
@@ -185,7 +185,7 @@ func Init5Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	}
 }
 
-func Init6Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
+func InitConfigReplHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	if !slices.Contains(*x.Config.Conf.DisableWarnings, "--WNonStdTmpDir") && os.TempDir() != "/tmp" {
 		x.Log.Printf("%s: %s", colors.PrintWarn(), "Non-standard value specified for temporary directory")
 	}
@@ -207,7 +207,7 @@ func Init6Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	}
 }
 
-func Init7Hook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) {
+func InitConfigPrintHook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) {
 	if *x.Config.Conf.Node.ShowConfig {
 		fmt.Printf("Configuration from %s:\n", x.Config.CMDLine.Run.ConfigPath)
 		x.Config.Print(x.Config.Conf)
@@ -224,7 +224,7 @@ func Init7Hook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) {
 	x.Log.Printf("Starting \"%s\" node", *x.Config.Conf.Node.Name)
 }
 
-func Init8Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
+func InitSLogHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	cs.Stage = corestate.StageReady
 	x.Log.SetPrefix(colors.SetGreen(fmt.Sprintf("(%s) ", cs.Stage)))
 
