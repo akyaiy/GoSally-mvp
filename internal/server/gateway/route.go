@@ -106,17 +106,17 @@ func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 func (gs *GatewayServer) Route(ctx context.Context, sid string, r *http.Request, req *rpc.RPCRequest) (resp *rpc.RPCResponse) {
 	defer utils.CatchPanicWithFallback(func(rec any) {
 		gs.x.SLog.Error("panic caught in handler", slog.Any("error", rec))
-		resp = rpc.NewError(rpc.ErrInternalError, "Internal server error (panic)", req.ID)
+		resp = rpc.NewError(rpc.ErrInternalError, "Internal server error (panic)", nil, req.ID)
 	})
 	if req.JSONRPC != rpc.JSONRPCVersion {
 		gs.x.SLog.Info("invalid request received", slog.String("issue", rpc.ErrInvalidRequestS), slog.String("requested-version", req.JSONRPC))
-		return rpc.NewError(rpc.ErrInvalidRequest, rpc.ErrInvalidRequestS, req.ID)
+		return rpc.NewError(rpc.ErrInvalidRequest, rpc.ErrInvalidRequestS, nil, req.ID)
 	}
 
 	server, ok := gs.servers[serversApiVer(req.ContextVersion)]
 	if !ok {
 		gs.x.SLog.Info("invalid request received", slog.String("issue", rpc.ErrContextVersionS), slog.String("requested-version", req.ContextVersion))
-		return rpc.NewError(rpc.ErrContextVersion, rpc.ErrContextVersionS, req.ID)
+		return rpc.NewError(rpc.ErrContextVersion, rpc.ErrContextVersionS, nil, req.ID)
 	}
 
 	// checks if request is notification

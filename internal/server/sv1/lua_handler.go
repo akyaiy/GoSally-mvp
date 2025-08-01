@@ -247,26 +247,26 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 	if _, err := os.Stat(prep); err == nil {
 		if err := L.DoFile(prep); err != nil {
 			h.x.SLog.Error("script error", slog.String("script", path), slog.String("error", err.Error()))
-			return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, req.ID)
+			return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, nil, req.ID)
 		}
 	}
 	if err := L.DoFile(path); err != nil {
 		h.x.SLog.Error("script error", slog.String("script", path), slog.String("error", err.Error()))
-		return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, req.ID)
+		return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, nil, req.ID)
 	}
 
 	pkg := L.GetGlobal("package")
 	pkgTbl, ok := pkg.(*lua.LTable)
 	if !ok {
 		h.x.SLog.Error("script error", slog.String("script", path), slog.String("error", "package not found"))
-		return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, req.ID)
+		return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, nil, req.ID)
 	}
 
 	loaded := pkgTbl.RawGetString("loaded")
 	loadedTbl, ok := loaded.(*lua.LTable)
 	if !ok {
 		h.x.SLog.Error("script error", slog.String("script", path), slog.String("error", "package.loaded not found"))
-		return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, req.ID)
+		return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, nil, req.ID)
 	}
 
 	sessionVal := loadedTbl.RawGetString("session")
@@ -288,23 +288,32 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 	outTbl, ok := outVal.(*lua.LTable)
 	if !ok {
 		h.x.SLog.Error("script error", slog.String("script", path), slog.String("error", "response is not a table"))
-		return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, req.ID)
+		return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, nil, req.ID)
 	}
 
 	if errVal := outTbl.RawGetString("error"); errVal != lua.LNil {
 		if errTbl, ok := errVal.(*lua.LTable); ok {
 			code := rpc.ErrInternalError
 			message := rpc.ErrInternalErrorS
+			data := make(map[string]any)
 			if c := errTbl.RawGetString("code"); c.Type() == lua.LTNumber {
 				code = int(c.(lua.LNumber))
 			}
 			if msg := errTbl.RawGetString("message"); msg.Type() == lua.LTString {
 				message = msg.String()
 			}
+			rawData := errTbl.RawGetString("data")
+
+			if tbl, ok := rawData.(*lua.LTable); ok {
+				tbl.ForEach(func(k, v lua.LValue) {data[k.String()] = ConvertLuaTypesToGolang(v)})
+			} else {
+				h.x.SLog.Error("the script terminated with an error", slog.String("code", strconv.Itoa(code)), slog.String("message", message))
+				return rpc.NewError(code, message, rawData, req.ID)
+			}
 			h.x.SLog.Error("the script terminated with an error", slog.String("code", strconv.Itoa(code)), slog.String("message", message))
-			return rpc.NewError(code, message, req.ID)
+			return rpc.NewError(code, message, data, req.ID)
 		}
-		return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, req.ID)
+		return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, nil, req.ID)
 	}
 
 	resultVal := outTbl.RawGetString("result")
