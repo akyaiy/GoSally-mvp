@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"syscall"
@@ -133,7 +134,7 @@ func Init4Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 
 // post-init stage
 func Init5Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
-	nodeApp.Fallback(func(ctx context.Context, cs *corestate.CoreState, x *app.AppX) {
+	NodeApp.Fallback(func(ctx context.Context, cs *corestate.CoreState, x *app.AppX) {
 		x.Log.Println("Cleaning up...")
 
 		if err := run_manager.Clean(); err != nil {
@@ -184,21 +185,29 @@ func Init5Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	}
 }
 
-func Init6Hook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) {
+func Init6Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	if !slices.Contains(*x.Config.Conf.DisableWarnings, "--WNonStdTmpDir") && os.TempDir() != "/tmp" {
 		x.Log.Printf("%s: %s", colors.PrintWarn(), "Non-standard value specified for temporary directory")
 	}
-	if strings.Contains(*x.Config.Conf.Log.OutPath, `%tmp%`) {
-		replaced := strings.ReplaceAll(*x.Config.Conf.Log.OutPath, "%tmp%", filepath.Clean(run_manager.RuntimeDir()))
-		x.Config.Conf.Log.OutPath = &replaced
+
+	replacements := map[string]any{
+		"%tmp%":    filepath.Clean(run_manager.RuntimeDir()),
+		"%path%":   *x.Config.Env.NodePath,
+		"%stdout%": os.Stdout,
+		"%stderr%": os.Stderr,
 	}
+
+	processConfig(&x.Config.Conf, replacements)
+
 	if !slices.Contains(logs.Levels.Available, *x.Config.Conf.Log.Level) {
 		if !slices.Contains(*x.Config.Conf.DisableWarnings, "--WUndefLogLevel") {
 			x.Log.Printf("%s: %s", colors.PrintWarn(), fmt.Sprintf("Unknown logging level %s, fallback level: %s", *x.Config.Conf.Log.Level, logs.Levels.Fallback))
 		}
 		x.Config.Conf.Log.Level = &logs.Levels.Fallback
 	}
+}
 
+func Init7Hook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) {
 	if *x.Config.Conf.Node.ShowConfig {
 		fmt.Printf("Configuration from %s:\n", x.Config.CMDLine.Run.ConfigPath)
 		x.Config.Print(x.Config.Conf)
@@ -206,16 +215,16 @@ func Init6Hook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) {
 		fmt.Printf("Environment:\n")
 		x.Config.Print(x.Config.Env)
 
-		if !askConfirm("Is that ok?", true) {
+		if cs.UUID32 != "" && !askConfirm("Is that ok?", true) {
 			x.Log.Printf("Cancel launch")
-			nodeApp.CallFallback(ctx)
+			NodeApp.CallFallback(ctx)
 		}
 	}
 
 	x.Log.Printf("Starting \"%s\" node", *x.Config.Conf.Node.Name)
 }
 
-func Init7Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
+func Init8Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	cs.Stage = corestate.StageReady
 	x.Log.SetPrefix(colors.SetGreen(fmt.Sprintf("(%s) ", cs.Stage)))
 
@@ -226,6 +235,111 @@ func Init7Hook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 		x.Log.Fatalf("Unexpected failure: %s", err.Error())
 	}
 	*x.SLog = *newSlog
+}
+
+func processConfig(conf any, replacements map[string]any) error {
+	val := reflect.ValueOf(conf)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	switch val.Kind() {
+	case reflect.Struct:
+		for i := 0; i < val.NumField(); i++ {
+			field := val.Field(i)
+			if field.CanAddr() && field.CanSet() {
+				if err := processConfig(field.Addr().Interface(), replacements); err != nil {
+					return err
+				}
+			}
+		}
+
+	case reflect.Slice:
+		for i := 0; i < val.Len(); i++ {
+			elem := val.Index(i)
+			if elem.CanAddr() && elem.CanSet() {
+				if err := processConfig(elem.Addr().Interface(), replacements); err != nil {
+					return err
+				}
+			}
+		}
+
+	case reflect.Map:
+		for _, key := range val.MapKeys() {
+			elem := val.MapIndex(key)
+			if elem.CanInterface() {
+				newVal := reflect.New(elem.Type()).Elem()
+				newVal.Set(elem)
+
+				if err := processConfig(newVal.Addr().Interface(), replacements); err != nil {
+					return err
+				}
+
+				val.SetMapIndex(key, newVal)
+			}
+		}
+
+	case reflect.String:
+		str := val.String()
+
+		if replacement, exists := replacements[str]; exists {
+			if err := setValue(val, replacement); err != nil {
+				return fmt.Errorf("failed to set %q: %v", str, err)
+			}
+		} else {
+			for placeholder, replacement := range replacements {
+				if strings.Contains(str, placeholder) {
+					replacementStr, err := toString(replacement)
+					if err != nil {
+						return fmt.Errorf("invalid replacement for %q: %v", placeholder, err)
+					}
+					newStr := strings.ReplaceAll(str, placeholder, replacementStr)
+					val.SetString(newStr)
+				}
+			}
+		}
+
+	case reflect.Ptr:
+		if !val.IsNil() {
+			return processConfig(val.Interface(), replacements)
+		}
+	}
+
+	return nil
+}
+
+func setValue(val reflect.Value, replacement any) error {
+	if !val.CanSet() {
+		return fmt.Errorf("value is not settable")
+	}
+
+	replacementVal := reflect.ValueOf(replacement)
+	if replacementVal.Type().AssignableTo(val.Type()) {
+		val.Set(replacementVal)
+		return nil
+	}
+
+	if val.Kind() == reflect.String {
+		str, err := toString(replacement)
+		if err != nil {
+			return fmt.Errorf("cannot convert replacement to string: %v", err)
+		}
+		val.SetString(str)
+		return nil
+	}
+
+	return fmt.Errorf("type mismatch: cannot assign %T to %v", replacement, val.Type())
+}
+
+func toString(v any) (string, error) {
+	switch s := v.(type) {
+	case string:
+		return s, nil
+	case fmt.Stringer:
+		return s.String(), nil
+	default:
+		return fmt.Sprint(v), nil
+	}
 }
 
 func askConfirm(prompt string, defaultYes bool) bool {
@@ -249,7 +363,7 @@ func askConfirm(prompt string, defaultYes bool) bool {
 	select {
 	case <-ctx.Done():
 		fmt.Println("")
-		nodeApp.CallFallback(ctx)
+		NodeApp.CallFallback(ctx)
 		os.Exit(3)
 	case text := <-inputChan:
 		text = strings.TrimSpace(strings.ToLower(text))
