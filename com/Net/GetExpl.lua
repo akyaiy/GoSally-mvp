@@ -1,26 +1,29 @@
+local session = require("session")
+local net = require("net")
+
 local reqAddr
 local logReq = true
 
-if In.Params and In.Params.url then
-  reqAddr = In.Params.url
+if session.request.params and session.request.params.url then
+  reqAddr = session.request.params.url
 else
-  Out.Error = {
+  session.response.error = {
     code = -32602,
     message = "no url provided"
   }
   return
 end
 
-local resp = Net.Http.Get(logReq, reqAddr)
+local resp = net.http.get_request(logReq, reqAddr)
 if resp then
-  Out.Result.answer = {
+  session.response.result.answer = {
     status = resp.status,
     body = resp.body
   }
   return
 end
 
-Out.Result.answer = {
-  status = resp.status
+session.response.error = {
+  data = "error while requesting"
 }
 
