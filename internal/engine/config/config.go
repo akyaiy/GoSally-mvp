@@ -56,7 +56,7 @@ type Updates struct {
 
 type Log struct {
 	Level   *string `mapstructure:"level"`
-	OutPath *string `mapstructure:"out_path"`
+	OutPath any     `mapstructure:"output"`
 }
 
 // ConfigEnv structure for environment variables
