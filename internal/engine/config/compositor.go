@@ -58,6 +58,7 @@ func (c *Compositor) LoadConf(path string) error {
 	v.SetDefault("updates.enabled", false)
 	v.SetDefault("updates.check_interval", "2h")
 	v.SetDefault("updates.wanted_version", "latest-stable")
+	v.SetDefault("log.json_format", "false")
 	v.SetDefault("log.level", "info")
 	v.SetDefault("log.output", "%stdout%")
 

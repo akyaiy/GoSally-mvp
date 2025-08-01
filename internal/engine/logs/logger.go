@@ -90,6 +90,13 @@ func SetupLogger(o *config.Log) (*slog.Logger, error) {
 		writer = logFile
 	}
 
-	log := slog.New(slog.NewJSONHandler(writer, &handlerOpts))
+	var handler slog.Handler
+
+	if *o.JSON {
+		handler = slog.NewJSONHandler(writer, &handlerOpts)
+	} else {
+		handler = slog.NewTextHandler(writer, &handlerOpts)
+	}
+	log := slog.New(handler)
 	return log, nil
 }
