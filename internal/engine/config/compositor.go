@@ -59,7 +59,7 @@ func (c *Compositor) LoadConf(path string) error {
 	v.SetDefault("updates.check_interval", "2h")
 	v.SetDefault("updates.wanted_version", "latest-stable")
 	v.SetDefault("log.level", "info")
-	v.SetDefault("log.out_path", "")
+	v.SetDefault("log.output", "%stdout%")
 
 	if err := v.ReadInConfig(); err != nil {
 		return fmt.Errorf("error reading config: %w", err)
