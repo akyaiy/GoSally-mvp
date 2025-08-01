@@ -305,7 +305,7 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 			rawData := errTbl.RawGetString("data")
 
 			if tbl, ok := rawData.(*lua.LTable); ok {
-				tbl.ForEach(func(k, v lua.LValue) {data[k.String()] = ConvertLuaTypesToGolang(v)})
+				tbl.ForEach(func(k, v lua.LValue) { data[k.String()] = ConvertLuaTypesToGolang(v) })
 			} else {
 				h.x.SLog.Error("the script terminated with an error", slog.String("code", strconv.Itoa(code)), slog.String("message", message))
 				return rpc.NewError(code, message, rawData, req.ID)
