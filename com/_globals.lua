@@ -9,7 +9,7 @@
 ---@field request.params AnyTable     Request parameters
 ---@field response AnyTable    Output context (write results/errors)
 ---@field response.result Any|string?  Result payload (table or primitive)
----@field response.error { code: integer, message: string }?  Optional error info
+---@field response.error { code: integer, message: string, data: any }?  Optional error info
 
 --- Global log module interface
 ---@class LogModule
