@@ -63,8 +63,10 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 		lL.SetField(sessionMod, "request", inTable)
 		lL.SetField(sessionMod, "response", outTable)
 
-		lL.Push(sessionMod)
+		lL.SetField(sessionMod, "id", lua.LString(sid))
+
 		lL.SetField(sessionMod, "__gosally_internal", lua.LString(fmt.Sprint(seed)))
+		lL.Push(sessionMod)
 		return 1
 	}
 
@@ -110,8 +112,8 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 			}))
 		}
 
-		lL.Push(logMod)
 		lL.SetField(logMod, "__gosally_internal", lua.LString(fmt.Sprint(seed)))
+		lL.Push(logMod)
 		return 1
 	}
 
@@ -239,8 +241,8 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 
 		lL.SetField(netMod, "http", netModhttp)
 
-		lL.Push(netMod)
 		lL.SetField(netMod, "__gosally_internal", lua.LString(fmt.Sprint(seed)))
+		lL.Push(netMod)
 		return 1
 	}
 
