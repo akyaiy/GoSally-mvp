@@ -82,29 +82,33 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 		for name, logFunc := range logFuncs {
 			fun := logFunc
 			lL.SetField(logMod, name, lL.NewFunction(func(lL *lua.LState) int {
-				msg := lL.ToString(1)
-				fun(fmt.Sprintf("the script says: %s", msg), slog.String("script", path))
+				msg := lL.Get(1)
+				converted := ConvertLuaTypesToGolang(msg)
+				fun(fmt.Sprintf("the script says: %s", converted), slog.String("script", path))
 				return 0
 			}))
 		}
 
-		lL.SetField(logMod, "event", lL.NewFunction(func(lL *lua.LState) int {
-			msg := lL.ToString(1)
-			h.x.Log.Printf("%s: %s", path, msg)
-			return 0
-		}))
-
-		lL.SetField(logMod, "event_error", lL.NewFunction(func(lL *lua.LState) int {
-			msg := lL.ToString(1)
-			h.x.Log.Printf("%s: %s: %s", colors.PrintError(), path, msg)
-			return 0
-		}))
-
-		lL.SetField(logMod, "event_warn", lL.NewFunction(func(lL *lua.LState) int {
-			msg := lL.ToString(1)
-			h.x.Log.Printf("%s: %s: %s", colors.PrintWarn(), path, msg)
-			return 0
-		}))
+		for _, fn := range []struct {
+			field string
+			pfunc func(string, ...any)
+			color func() string
+		}{
+			{"event", h.x.Log.Printf, nil},
+			{"event_error", h.x.Log.Printf, colors.PrintError},
+			{"event_warn", h.x.Log.Printf, colors.PrintWarn},
+		} {
+			lL.SetField(logMod, fn.field, lL.NewFunction(func(lL *lua.LState) int {
+				msg := lL.Get(1)
+				converted := ConvertLuaTypesToGolang(msg)
+				if fn.color != nil {
+					h.x.Log.Printf("%s: %s: %s", fn.color(), path, converted)
+				} else {
+					h.x.Log.Printf("%s: %s", path, converted)
+				}
+				return 0
+			}))
+		}
 
 		lL.Push(logMod)
 		lL.SetField(logMod, "__gosally_internal", lua.LString(fmt.Sprint(seed)))
