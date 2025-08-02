@@ -1,5 +1,5 @@
-local session = require("session")
-local net = require("net")
+local session = require("internal.session")
+local net = require("internal.net")
 
 local reqAddr
 local logReq = true

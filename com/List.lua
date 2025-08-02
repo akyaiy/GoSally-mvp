@@ -1,6 +1,6 @@
 -- com/List.lua
 
-local session = require("session")
+local session = require("internal.session")
 
 if session.request and session.request.params and session.request.params.about then
   session.response.result = {

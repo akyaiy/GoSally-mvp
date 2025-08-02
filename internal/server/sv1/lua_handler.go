@@ -246,9 +246,9 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 		return 1
 	}
 
-	L.PreloadModule("session", loadSessionMod)
-	L.PreloadModule("log", loadLogMod)
-	L.PreloadModule("net", loadNetMod)
+	L.PreloadModule("internal.session", loadSessionMod)
+	L.PreloadModule("internal.log", loadLogMod)
+	L.PreloadModule("internal.net", loadNetMod)
 
 	h.x.SLog.Debug("preparing environment", slog.String("session-id", sid))
 	prep := filepath.Join(*h.x.Config.Conf.Node.ComDir, "_prepare.lua")
@@ -278,7 +278,7 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 		return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, nil, req.ID)
 	}
 
-	sessionVal := loadedTbl.RawGetString("session")
+	sessionVal := loadedTbl.RawGetString("internal.session")
 	sessionTbl, ok := sessionVal.(*lua.LTable)
 	if !ok {
 		return rpc.NewResponse(map[string]any{
