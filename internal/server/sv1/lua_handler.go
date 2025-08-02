@@ -38,6 +38,7 @@ func addInitiatorHeaders(sid string, req *http.Request, headers http.Header) {
 // I will be only glad.
 // TODO: make this huge function more harmonious by dividing responsibilities
 func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, path string) *rpc.RPCResponse {
+	h.x.SLog.Debug("handling LUA", slog.String("session-id", sid))
 	L := lua.NewState()
 	defer L.Close()
 
@@ -243,6 +244,7 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 	L.PreloadModule("log", loadLogMod)
 	L.PreloadModule("net", loadNetMod)
 
+	h.x.SLog.Debug("preparing environment", slog.String("session-id", sid))
 	prep := filepath.Join(*h.x.Config.Conf.Node.ComDir, "_prepare.lua")
 	if _, err := os.Stat(prep); err == nil {
 		if err := L.DoFile(prep); err != nil {
@@ -250,6 +252,7 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 			return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, nil, req.ID)
 		}
 	}
+	h.x.SLog.Debug("executing script", slog.String("script", path), slog.String("session-id", sid))
 	if err := L.DoFile(path); err != nil {
 		h.x.SLog.Error("script error", slog.String("script", path), slog.String("error", err.Error()))
 		return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, nil, req.ID)
@@ -279,6 +282,7 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 
 	tag := sessionTbl.RawGetString("__gosally_internal")
 	if tag.Type() != lua.LTString || tag.String() != fmt.Sprint(seed) {
+		h.x.SLog.Debug("stock session module is not imported: wrong seed", slog.String("script", path), slog.String("session-id", sid))
 		return rpc.NewResponse(map[string]any{
 			"responsible-node": h.cs.UUID32,
 		}, req.ID)
@@ -292,6 +296,7 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 	}
 
 	if errVal := outTbl.RawGetString("error"); errVal != lua.LNil {
+		h.x.SLog.Debug("catch error table", slog.String("script", path), slog.String("session-id", sid))
 		if errTbl, ok := errVal.(*lua.LTable); ok {
 			code := rpc.ErrInternalError
 			message := rpc.ErrInternalErrorS
