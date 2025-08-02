@@ -5,6 +5,8 @@ tmp/
 .meta/
 db/
 
+com/test.lua
+
 .vscode
 Taskfile.yml
 config.yaml
