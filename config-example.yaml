@@ -1,21 +1,30 @@
-mode: "prod"
+node:
+  mode: dev
+  name: "My gosally node"
+  show_config: true
+  com_dir: "%path%/com"
 
 http_server:
-  address: "0.0.0.0:8080"
-  api:
-    latest-version: v1
-    layers:
-      - b1
-      - s2
+  address: "0.0.0.0"
+  port: "8080"
+  session_ttl: 5s
+  timeout: 3s
+  idle_timeout: 30s
 
 tls:
-  enabled: false
-  cert_file: "./cert/fullchain.pem"
-  key_file: "./cert/privkey.pem"
-
-com_dir: "com/"
+  enabled: true
+  cert_file: "%path%/cert/fullchain.pem"
+  key_file: "%path%/cert/privkey.pem"
 
 updates:
-  enabled: true
+  enabled: false
   check-interval: 1h
   repository_url: "https://repo.serve.lv/raw/go-sally"
+
+log:
+  json_format: false
+  level: "debug"
+
+disable_warnings:
+  - --WNonStdTmpDir
+  - --WUndefLogLevel
