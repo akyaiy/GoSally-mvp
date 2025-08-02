@@ -1,27 +1,35 @@
+local session = require("session")
+local net = require("net")
+local log = require("log")
+
 local reqAddr
 local logReq = true
 local payload
 
-if not In.Params and In.Params.url or not In.Params.payload then
-  Out.Error = {
+log.debug(session.request.params)
+
+if not (session.request.params and session.request.params.url) then
+  session.response.error = {
     code = -32602,
     message = "no url or payload provided"
   }
   return
 end
 
-reqAddr = In.Params.url
-payload = In.Params.payload
 
-local resp = Net.Http.Post(logReq, reqAddr, "application/json", payload)
+
+reqAddr = session.request.params.url
+payload = session.request.params.payload
+
+local resp = net.http.post_request(logReq, reqAddr, "application/json", payload)
 if resp then
-  Out.Result.answer = {
+  session.response.result.answer = {
     status = resp.status,
     body = resp.body
   }
   return
 end
 
-Out.Result.answer = {
-  status = resp.status
+session.response.error = {
+  data = "error while requesting"
 }
