@@ -2,6 +2,8 @@ package config
 
 import "os"
 
+// TODO: Need to make a more harmonious and understandable way of storing global variables
+
 // UUIDLength is uuids length for sessions. By default it is 16 bytes.
 var UUIDLength int = 16
 

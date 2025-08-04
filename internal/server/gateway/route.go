@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -9,12 +10,35 @@ import (
 
 	"github.com/akyaiy/GoSally-mvp/internal/core/utils"
 	"github.com/akyaiy/GoSally-mvp/internal/server/rpc"
+	"github.com/google/uuid"
 )
 
 func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context() // TODO
+
 	w.Header().Set("Content-Type", "application/json")
+	sessionUUID := r.Header.Get("X-Session-UUID")
+	if sessionUUID == "" {
+		sessionUUID = uuid.New().String()
+	}
+	gs.x.SLog.Debug("new request", slog.String("session-uuid", sessionUUID), slog.Group("connection", slog.String("ip", r.RemoteAddr)))
+
+	w.Header().Set("X-Session-UUID", sessionUUID)
+	if !gs.sm.Add(sessionUUID) {
+		gs.x.SLog.Debug("session is busy", slog.String("session-uuid", sessionUUID))
+		rpc.WriteError(w, &rpc.RPCResponse{
+			Error: map[string]any{
+				"code":    rpc.ErrSessionIsBusy,
+				"message": rpc.ErrSessionIsBusyS,
+			},
+		})
+		return
+	}
+	defer gs.sm.Delete(sessionUUID)
+
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
+		gs.x.SLog.Debug("failed to read body", slog.String("err", err.Error()))
 		w.WriteHeader(http.StatusBadRequest)
 		rpc.WriteError(w, &rpc.RPCResponse{
 			JSONRPC: rpc.JSONRPCVersion,
@@ -24,7 +48,7 @@ func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 				"message": rpc.ErrInternalErrorS,
 			},
 		})
-		gs.log.Info("invalid request received", slog.String("issue", rpc.ErrInternalErrorS))
+		gs.x.SLog.Info("invalid request received", slog.String("issue", rpc.ErrInternalErrorS))
 		return
 	}
 
@@ -34,6 +58,7 @@ func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 	var single rpc.RPCRequest
 	if batch == nil {
 		if err := json.Unmarshal(body, &single); err != nil {
+			gs.x.SLog.Debug("failed to parse json", slog.String("err", err.Error()))
 			w.WriteHeader(http.StatusBadRequest)
 			rpc.WriteError(w, &rpc.RPCResponse{
 				JSONRPC: rpc.JSONRPCVersion,
@@ -43,10 +68,14 @@ func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 					"message": rpc.ErrParseErrorS,
 				},
 			})
-			gs.log.Info("invalid request received", slog.String("issue", rpc.ErrParseErrorS))
+			gs.x.SLog.Info("invalid request received", slog.String("issue", rpc.ErrParseErrorS))
 			return
 		}
-		resp := gs.Route(r, &single)
+		resp := gs.Route(ctx, sessionUUID, r, &single)
+		if resp == nil {
+			w.Write([]byte(""))
+			return
+		}
 		rpc.WriteResponse(w, resp)
 		return
 	}
@@ -58,7 +87,7 @@ func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 		wg.Add(1)
 		go func(req rpc.RPCRequest) {
 			defer wg.Done()
-			res := gs.Route(r, &req)
+			res := gs.Route(ctx, sessionUUID, r, &req)
 			if res != nil {
 				responses <- *res
 			}
@@ -73,29 +102,31 @@ func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(result) > 0 {
 		json.NewEncoder(w).Encode(result)
+	} else {
+		w.Write([]byte("[]"))
 	}
 }
 
-func (gs *GatewayServer) Route(r *http.Request, req *rpc.RPCRequest) (resp *rpc.RPCResponse) {
+func (gs *GatewayServer) Route(ctx context.Context, sid string, r *http.Request, req *rpc.RPCRequest) (resp *rpc.RPCResponse) {
 	defer utils.CatchPanicWithFallback(func(rec any) {
-		gs.log.Error("panic caught in handler", slog.Any("error", rec))
-		resp = rpc.NewError(rpc.ErrInternalError, "Internal server error (panic)", req.ID)
+		gs.x.SLog.Error("panic caught in handler", slog.Any("error", rec))
+		resp = rpc.NewError(rpc.ErrInternalError, "Internal server error (panic)", nil, req.ID)
 	})
 	if req.JSONRPC != rpc.JSONRPCVersion {
-		gs.log.Info("invalid request received", slog.String("issue", rpc.ErrInvalidRequestS), slog.String("requested-version", req.JSONRPC))
-		return rpc.NewError(rpc.ErrInvalidRequest, rpc.ErrInvalidRequestS, req.ID)
+		gs.x.SLog.Info("invalid request received", slog.String("issue", rpc.ErrInvalidRequestS), slog.String("requested-version", req.JSONRPC))
+		return rpc.NewError(rpc.ErrInvalidRequest, rpc.ErrInvalidRequestS, nil, req.ID)
 	}
 
 	server, ok := gs.servers[serversApiVer(req.ContextVersion)]
 	if !ok {
-		gs.log.Info("invalid request received", slog.String("issue", rpc.ErrContextVersionS), slog.String("requested-version", req.ContextVersion))
-		return rpc.NewError(rpc.ErrContextVersion, rpc.ErrContextVersionS, req.ID)
+		gs.x.SLog.Info("invalid request received", slog.String("issue", rpc.ErrContextVersionS), slog.String("requested-version", req.ContextVersion))
+		return rpc.NewError(rpc.ErrContextVersion, rpc.ErrContextVersionS, nil, req.ID)
 	}
 
-	resp = server.Handle(r, req)
 	// checks if request is notification
 	if req.ID == nil {
+		go server.Handle(ctx, sid, r, req)
 		return nil
 	}
-	return resp
+	return server.Handle(ctx, sid, r, req)
 }

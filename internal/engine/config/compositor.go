@@ -43,10 +43,13 @@ func (c *Compositor) LoadConf(path string) error {
 	v.SetConfigType("yaml")
 
 	// defaults
-	v.SetDefault("mode", "dev")
-	v.SetDefault("com_dir", "./com/")
+	v.SetDefault("node.name", "noname")
+	v.SetDefault("node.mode", "dev")
+	v.SetDefault("node.show_config", "false")
+	v.SetDefault("node.com_dir", "./com/")
 	v.SetDefault("http_server.address", "0.0.0.0")
 	v.SetDefault("http_server.port", "8080")
+	v.SetDefault("http_server.session_ttl", "30m")
 	v.SetDefault("http_server.timeout", "5s")
 	v.SetDefault("http_server.idle_timeout", "60s")
 	v.SetDefault("tls.enabled", false)
@@ -55,8 +58,9 @@ func (c *Compositor) LoadConf(path string) error {
 	v.SetDefault("updates.enabled", false)
 	v.SetDefault("updates.check_interval", "2h")
 	v.SetDefault("updates.wanted_version", "latest-stable")
+	v.SetDefault("log.json_format", "false")
 	v.SetDefault("log.level", "info")
-	v.SetDefault("log.out_path", "")
+	v.SetDefault("log.output", "%2%")
 
 	if err := v.ReadInConfig(); err != nil {
 		return fmt.Errorf("error reading config: %w", err)
