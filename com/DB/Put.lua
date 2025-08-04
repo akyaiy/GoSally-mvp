@@ -3,25 +3,6 @@ local db = require("internal.database-sqlite").connect("db/test.db", {log = true
 local log = require("internal.log")
 local session = require("internal.session")
 
-local ctx, err = db:exec([[
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    email TEXT UNIQUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )
-]])
-if err ~= nil then
-  log.event_error("Failed to create table: "..tostring(err))
-  return
-end
-
-_, err = ctx:wait()
-if err ~= nil then
-  log.event_error("Table creation failed: "..tostring(err))
-  return
-end
-
 if not (session.request.params.name and session.request.params.email) then
   session.response.error = {
     code = -32602,
