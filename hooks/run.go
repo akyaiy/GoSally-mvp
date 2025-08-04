@@ -75,8 +75,8 @@ func RunHook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) error {
 	r := chi.NewRouter()
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		AllowedMethods:   []string{"POST"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Session-UUID"},
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
