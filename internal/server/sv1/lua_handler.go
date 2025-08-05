@@ -53,7 +53,36 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 		sessionMod := L.NewTable()
 		inTable := L.NewTable()
 		paramsTable := L.NewTable()
+		headersTable := L.NewTable()
 
+		fetchedHeadersTable := L.NewTable()
+		for k, v := range r.Header {
+			L.SetField(fetchedHeadersTable, k, ConvertGolangTypesToLua(L, v))
+		}
+		
+		headersGetter := L.NewFunction(func(L *lua.LState) int {
+			path := L.OptString(1, "")
+			def := L.Get(2)
+
+			get := func(path string) lua.LValue {
+				if path == "" {
+					return fetchedHeadersTable
+				}
+				fetched := r.Header.Get(path)
+				if fetched == "" {
+					return lua.LNil
+				}
+				return lua.LString(fetched)
+			}
+			val := get(path)
+			if val == lua.LNil && def != lua.LNil {
+				L.Push(def)
+			} else {
+				L.Push(val)
+			}
+			return 1
+		})
+		
 		fetchedParamsTable := L.NewTable()
 		if fetchedParams, ok := req.Params.(map[string]any); ok {
 			for k, v := range fetchedParams {
@@ -61,7 +90,7 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 			}
 		}
 		
-		getter := L.NewFunction(func(L *lua.LState) int {
+		paramsGetter := L.NewFunction(func(L *lua.LState) int {
 			path := L.OptString(1, "")
 			def := L.Get(2)
 
@@ -94,8 +123,14 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 			}
 			return 1
 		})
+		L.SetField(headersTable, "__fetched", fetchedHeadersTable)
 
-		L.SetField(paramsTable, "get", getter)
+		L.SetField(headersTable, "get", headersGetter)
+		L.SetField(inTable, "headers", headersTable)
+
+		L.SetField(paramsTable, "__fetched", fetchedParamsTable)
+
+		L.SetField(paramsTable, "get", paramsGetter)
 		L.SetField(inTable, "params", paramsTable)
 
 		outTable := L.NewTable()

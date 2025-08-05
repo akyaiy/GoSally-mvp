@@ -2,7 +2,9 @@
 
 local session = require("internal.session")
 
-if session.request.params.about then
+local params = session.request.params.get()
+
+if params.about then
   session.response.result = {
     description = "Returns a list of available methods",
     params = {
@@ -48,7 +50,7 @@ local function scanDirectory(basePath, targetPath)
 end
 
 local basePath = "com"
-local layer = session.request and session.request.params.layer and session.request.params.layer:gsub(">", "/") or nil
+local layer = params.layer and params.layer:gsub(">", "/") or nil
 
 session.response.result = {
   answer = layer and scanDirectory(basePath, layer) or scanDirectory(basePath, "")

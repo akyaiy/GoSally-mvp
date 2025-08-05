@@ -6,6 +6,9 @@ local log = require("internal.log")
 local session = require("internal.session")
 local crypt = require("internal.crypt.bcrypt")
 
+local params = session.request.params.get()
+local token = session.request.headers.get("x-session-token")
+
 local function close_db()
   if db then
     db:close()
@@ -22,19 +25,13 @@ local function error_response(message, code, data)
   close_db()
 end
 
-if not session.request.params then
+if not params then
   return error_response("no params provided")
 end
 
-if not session.request.params.token then
+if not (token and token == require("_config").token()) then
   return error_response("access denied")
 end
-
-if session.request.params.token ~= require("_config").token() then
-  return error_response("access denied")
-end
-
-local params = session.request.params
 
 if not (params.username and params.email and params.password) then
   return error_response("no username/email/password provided")
