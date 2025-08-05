@@ -48,20 +48,20 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 
 	seed := rand.Int()
 
-	loadSessionMod := func(lL *lua.LState) int {
+	loadSessionMod := func(L *lua.LState) int {
 		llog.Debug("import module session", slog.String("script", path))
-		sessionMod := lL.NewTable()
-		inTable := lL.NewTable()
-		paramsTable := lL.NewTable()
+		sessionMod := L.NewTable()
+		inTable := L.NewTable()
+		paramsTable := L.NewTable()
 
-		fetchedParamsTable := lL.NewTable()
+		fetchedParamsTable := L.NewTable()
 		if fetchedParams, ok := req.Params.(map[string]any); ok {
 			for k, v := range fetchedParams {
-				lL.SetField(fetchedParamsTable, k, ConvertGolangTypesToLua(lL, v))
+				L.SetField(fetchedParamsTable, k, ConvertGolangTypesToLua(L, v))
 			}
 		}
 		
-		getter := lL.NewFunction(func(L *lua.LState) int {
+		getter := L.NewFunction(func(L *lua.LState) int {
 			path := L.OptString(1, "")
 			def := L.Get(2)
 
@@ -95,27 +95,27 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 			return 1
 		})
 
-		lL.SetField(paramsTable, "get", getter)
-		lL.SetField(inTable, "params", paramsTable)
+		L.SetField(paramsTable, "get", getter)
+		L.SetField(inTable, "params", paramsTable)
 
-		outTable := lL.NewTable()
-		resultTable := lL.NewTable()
-		lL.SetField(outTable, "result", resultTable)
+		outTable := L.NewTable()
+		resultTable := L.NewTable()
+		L.SetField(outTable, "result", resultTable)
 
-		lL.SetField(inTable, "address", lua.LString(r.RemoteAddr))
-		lL.SetField(sessionMod, "request", inTable)
-		lL.SetField(sessionMod, "response", outTable)
+		L.SetField(inTable, "address", lua.LString(r.RemoteAddr))
+		L.SetField(sessionMod, "request", inTable)
+		L.SetField(sessionMod, "response", outTable)
 
-		lL.SetField(sessionMod, "id", lua.LString(sid))
+		L.SetField(sessionMod, "id", lua.LString(sid))
 
-		lL.SetField(sessionMod, "__gosally_internal", lua.LString(fmt.Sprint(seed)))
-		lL.Push(sessionMod)
+		L.SetField(sessionMod, "__gosally_internal", lua.LString(fmt.Sprint(seed)))
+		L.Push(sessionMod)
 		return 1
 	}
 
-	loadLogMod := func(lL *lua.LState) int {
+	loadLogMod := func(L *lua.LState) int {
 		llog.Debug("import module log", slog.String("script", path))
-		logMod := lL.NewTable()
+		logMod := L.NewTable()
 
 		logFuncs := map[string]func(string, ...any){
 			"info":  llog.Info,
@@ -126,8 +126,8 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 
 		for name, logFunc := range logFuncs {
 			fun := logFunc
-			lL.SetField(logMod, name, lL.NewFunction(func(lL *lua.LState) int {
-				msg := lL.Get(1)
+			L.SetField(logMod, name, L.NewFunction(func(L *lua.LState) int {
+				msg := L.Get(1)
 				converted := ConvertLuaTypesToGolang(msg)
 				fun(fmt.Sprintf("the script says: %s", converted), slog.String("script", path))
 				return 0
@@ -143,8 +143,8 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 			{"event_error", h.x.Log.Printf, colors.PrintError},
 			{"event_warn", h.x.Log.Printf, colors.PrintWarn},
 		} {
-			lL.SetField(logMod, fn.field, lL.NewFunction(func(lL *lua.LState) int {
-				msg := lL.Get(1)
+			L.SetField(logMod, fn.field, L.NewFunction(func(L *lua.LState) int {
+				msg := L.Get(1)
 				converted := ConvertLuaTypesToGolang(msg)
 				if fn.color != nil {
 					h.x.Log.Printf("%s: %s: %s", fn.color(), path, converted)
@@ -155,24 +155,24 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 			}))
 		}
 
-		lL.SetField(logMod, "__gosally_internal", lua.LString(fmt.Sprint(seed)))
-		lL.Push(logMod)
+		L.SetField(logMod, "__gosally_internal", lua.LString(fmt.Sprint(seed)))
+		L.Push(logMod)
 		return 1
 	}
 
-	loadNetMod := func(lL *lua.LState) int {
+	loadNetMod := func(L *lua.LState) int {
 		llog.Debug("import module net", slog.String("script", path))
-		netMod := lL.NewTable()
-		netModhttp := lL.NewTable()
+		netMod := L.NewTable()
+		netModhttp := L.NewTable()
 
-		lL.SetField(netModhttp, "get_request", lL.NewFunction(func(lL *lua.LState) int {
-			logRequest := lL.ToBool(1)
-			url := lL.ToString(2)
+		L.SetField(netModhttp, "get_request", L.NewFunction(func(L *lua.LState) int {
+			logRequest := L.ToBool(1)
+			url := L.ToString(2)
 
 			req, err := http.NewRequest("GET", url, nil)
 			if err != nil {
-				lL.Push(lua.LNil)
-				lL.Push(lua.LString(err.Error()))
+				L.Push(lua.LNil)
+				L.Push(lua.LString(err.Error()))
 				return 2
 			}
 
@@ -181,16 +181,16 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 			client := &http.Client{}
 			resp, err := client.Do(req)
 			if err != nil {
-				lL.Push(lua.LNil)
-				lL.Push(lua.LString(err.Error()))
+				L.Push(lua.LNil)
+				L.Push(lua.LString(err.Error()))
 				return 2
 			}
 			defer resp.Body.Close()
 
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {
-				lL.Push(lua.LNil)
-				lL.Push(lua.LString(err.Error()))
+				L.Push(lua.LNil)
+				L.Push(lua.LString(err.Error()))
 				return 2
 			}
 
@@ -204,34 +204,34 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 				)
 			}
 
-			result := lL.NewTable()
-			lL.SetField(result, "status", lua.LNumber(resp.StatusCode))
-			lL.SetField(result, "status_text", lua.LString(resp.Status))
-			lL.SetField(result, "body", lua.LString(body))
-			lL.SetField(result, "content_length", lua.LNumber(resp.ContentLength))
+			result := L.NewTable()
+			L.SetField(result, "status", lua.LNumber(resp.StatusCode))
+			L.SetField(result, "status_text", lua.LString(resp.Status))
+			L.SetField(result, "body", lua.LString(body))
+			L.SetField(result, "content_length", lua.LNumber(resp.ContentLength))
 
-			headers := lL.NewTable()
+			headers := L.NewTable()
 			for k, v := range resp.Header {
-				lL.SetField(headers, k, ConvertGolangTypesToLua(lL, v))
+				L.SetField(headers, k, ConvertGolangTypesToLua(L, v))
 			}
-			lL.SetField(result, "headers", headers)
+			L.SetField(result, "headers", headers)
 
-			lL.Push(result)
+			L.Push(result)
 			return 1
 		}))
 
-		lL.SetField(netModhttp, "post_request", lL.NewFunction(func(lL *lua.LState) int {
-			logRequest := lL.ToBool(1)
-			url := lL.ToString(2)
-			contentType := lL.ToString(3)
-			payload := lL.ToString(4)
+		L.SetField(netModhttp, "post_request", L.NewFunction(func(L *lua.LState) int {
+			logRequest := L.ToBool(1)
+			url := L.ToString(2)
+			contentType := L.ToString(3)
+			payload := L.ToString(4)
 
 			body := strings.NewReader(payload)
 
 			req, err := http.NewRequest("POST", url, body)
 			if err != nil {
-				lL.Push(lua.LNil)
-				lL.Push(lua.LString(err.Error()))
+				L.Push(lua.LNil)
+				L.Push(lua.LString(err.Error()))
 				return 2
 			}
 
@@ -242,16 +242,16 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 			client := &http.Client{}
 			resp, err := client.Do(req)
 			if err != nil {
-				lL.Push(lua.LNil)
-				lL.Push(lua.LString(err.Error()))
+				L.Push(lua.LNil)
+				L.Push(lua.LString(err.Error()))
 				return 2
 			}
 			defer resp.Body.Close()
 
 			respBody, err := io.ReadAll(resp.Body)
 			if err != nil {
-				lL.Push(lua.LNil)
-				lL.Push(lua.LString(err.Error()))
+				L.Push(lua.LNil)
+				L.Push(lua.LString(err.Error()))
 				return 2
 			}
 
@@ -266,47 +266,47 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 				)
 			}
 
-			result := lL.NewTable()
-			lL.SetField(result, "status", lua.LNumber(resp.StatusCode))
-			lL.SetField(result, "status_text", lua.LString(resp.Status))
-			lL.SetField(result, "body", lua.LString(respBody))
-			lL.SetField(result, "content_length", lua.LNumber(resp.ContentLength))
+			result := L.NewTable()
+			L.SetField(result, "status", lua.LNumber(resp.StatusCode))
+			L.SetField(result, "status_text", lua.LString(resp.Status))
+			L.SetField(result, "body", lua.LString(respBody))
+			L.SetField(result, "content_length", lua.LNumber(resp.ContentLength))
 
-			headers := lL.NewTable()
+			headers := L.NewTable()
 			for k, v := range resp.Header {
-				lL.SetField(headers, k, ConvertGolangTypesToLua(lL, v))
+				L.SetField(headers, k, ConvertGolangTypesToLua(L, v))
 			}
-			lL.SetField(result, "headers", headers)
+			L.SetField(result, "headers", headers)
 
-			lL.Push(result)
+			L.Push(result)
 			return 1
 		}))
 
-		lL.SetField(netMod, "http", netModhttp)
+		L.SetField(netMod, "http", netModhttp)
 
-		lL.SetField(netMod, "__gosally_internal", lua.LString(fmt.Sprint(seed)))
-		lL.Push(netMod)
+		L.SetField(netMod, "__gosally_internal", lua.LString(fmt.Sprint(seed)))
+		L.Push(netMod)
 		return 1
 	}
 
-	loadCryptbcryptMod := func(lL *lua.LState) int {
+	loadCryptbcryptMod := func(L *lua.LState) int {
 		llog.Debug("import module crypt.bcrypt", slog.String("script", path))
-		bcryptMod := lL.NewTable()
+		bcryptMod := L.NewTable()
 
-		lL.SetField(bcryptMod, "MinCost", lua.LNumber(bcrypt.MinCost))
-		lL.SetField(bcryptMod, "MaxCost", lua.LNumber(bcrypt.MaxCost))
-		lL.SetField(bcryptMod, "DefaultCost", lua.LNumber(bcrypt.DefaultCost))
+		L.SetField(bcryptMod, "MinCost", lua.LNumber(bcrypt.MinCost))
+		L.SetField(bcryptMod, "MaxCost", lua.LNumber(bcrypt.MaxCost))
+		L.SetField(bcryptMod, "DefaultCost", lua.LNumber(bcrypt.DefaultCost))
 
-		lL.SetField(bcryptMod, "generate", lL.NewFunction(func(l *lua.LState) int {
-			password := ConvertLuaTypesToGolang(lL.Get(1))
+		L.SetField(bcryptMod, "generate", L.NewFunction(func(l *lua.LState) int {
+			password := ConvertLuaTypesToGolang(L.Get(1))
 			passwordStr, ok := password.(string)
 			if !ok {
-				lL.Push(lua.LNil)
-				lL.Push(lua.LString("error: password must be a string"))
+				L.Push(lua.LNil)
+				L.Push(lua.LString("error: password must be a string"))
 				return 2
 			}
 
-			cost := ConvertLuaTypesToGolang(lL.Get(2))
+			cost := ConvertLuaTypesToGolang(L.Get(2))
 			costInt := bcrypt.DefaultCost
 			switch v := cost.(type) {
 			case int:
@@ -316,48 +316,48 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 			case nil:
 				// ok, use DefaultCost
 			default:
-				lL.Push(lua.LNil)
-				lL.Push(lua.LString("error: cost must be an integer"))
+				L.Push(lua.LNil)
+				L.Push(lua.LString("error: cost must be an integer"))
 				return 2
 			}
 
 			hashBytes, err := bcrypt.GenerateFromPassword([]byte(passwordStr), costInt)
 			if err != nil {
-				lL.Push(lua.LNil)
-				lL.Push(lua.LString("error: " + err.Error()))
+				L.Push(lua.LNil)
+				L.Push(lua.LString("error: " + err.Error()))
 				return 2
 			}
 
-			lL.Push(lua.LString(string(hashBytes)))
-			lL.Push(lua.LNil)
+			L.Push(lua.LString(string(hashBytes)))
+			L.Push(lua.LNil)
 			return 2
 		}))
 
-		lL.SetField(bcryptMod, "compare", lL.NewFunction(func(l *lua.LState) int {
-			hash := ConvertLuaTypesToGolang(lL.Get(1))
+		L.SetField(bcryptMod, "compare", L.NewFunction(func(l *lua.LState) int {
+			hash := ConvertLuaTypesToGolang(L.Get(1))
 			hashStr, ok := hash.(string)
 			if !ok {
-				lL.Push(lua.LString("error: hash must be a string"))
+				L.Push(lua.LString("error: hash must be a string"))
 				return 1
 			}
-			password := ConvertLuaTypesToGolang(lL.Get(2))
+			password := ConvertLuaTypesToGolang(L.Get(2))
 			passwordStr, ok := password.(string)
 			if !ok {
-				lL.Push(lua.LString("error: password must be a string"))
+				L.Push(lua.LString("error: password must be a string"))
 				return 1
 			}
 
 			err := bcrypt.CompareHashAndPassword([]byte(hashStr), []byte(passwordStr))
 			if err != nil {
-				lL.Push(lua.LFalse)
+				L.Push(lua.LFalse)
 				return 1
 			}
-			lL.Push(lua.LTrue)
+			L.Push(lua.LTrue)
 			return 1
 		}))
 
-		lL.SetField(bcryptMod, "__gosally_internal", lua.LString(fmt.Sprint(seed)))
-		lL.Push(bcryptMod)
+		L.SetField(bcryptMod, "__gosally_internal", lua.LString(fmt.Sprint(seed)))
+		L.Push(bcryptMod)
 		return 1
 	}
 

@@ -162,7 +162,7 @@ func dbExec(L *lua.LState) int {
 	var result lua.LValue = lua.LNil
 	var errorMsg lua.LValue = lua.LNil
 
-	L.SetField(ctx, "wait", L.NewFunction(func(lL *lua.LState) int {
+	L.SetField(ctx, "wait", L.NewFunction(func(L *lua.LState) int {
 		res := <-resCh
 		L.SetField(ctx, "done", lua.LBool(true))
 
@@ -175,35 +175,35 @@ func dbExec(L *lua.LState) int {
 		}
 
 		if res.err != nil {
-			lL.Push(lua.LNil)
-			lL.Push(lua.LString(res.err.Error()))
+			L.Push(lua.LNil)
+			L.Push(lua.LString(res.err.Error()))
 			return 2
 		}
-		lL.Push(lua.LNumber(res.rowsAffected))
-		lL.Push(lua.LNil)
+		L.Push(lua.LNumber(res.rowsAffected))
+		L.Push(lua.LNil)
 		return 2
 	}))
 
-	L.SetField(ctx, "check", L.NewFunction(func(lL *lua.LState) int {
+	L.SetField(ctx, "check", L.NewFunction(func(L *lua.LState) int {
 		select {
 		case res := <-resCh:
-			lL.SetField(ctx, "done", lua.LBool(true))
+			L.SetField(ctx, "done", lua.LBool(true))
 			if res.err != nil {
 				errorMsg = lua.LString(res.err.Error())
 				result = lua.LNil
-				lL.Push(lua.LNil)
-				lL.Push(lua.LString(res.err.Error()))
+				L.Push(lua.LNil)
+				L.Push(lua.LString(res.err.Error()))
 				return 2
 			} else {
 				result = lua.LNumber(res.rowsAffected)
 				errorMsg = lua.LNil
-				lL.Push(lua.LNumber(res.rowsAffected))
-				lL.Push(lua.LNil)
+				L.Push(lua.LNumber(res.rowsAffected))
+				L.Push(lua.LNil)
 				return 2
 			}
 		default:
-			lL.Push(result)
-			lL.Push(errorMsg)
+			L.Push(result)
+			L.Push(errorMsg)
 			return 2
 		}
 	}))
