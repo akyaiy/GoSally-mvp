@@ -2,7 +2,7 @@
 
 local session = require("internal.session")
 
-if session.request and session.request.params and session.request.params.about then
+if session.request.params.about then
   session.response.result = {
     description = "Returns a list of available methods",
     params = {
