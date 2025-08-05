@@ -53,11 +53,49 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 		sessionMod := lL.NewTable()
 		inTable := lL.NewTable()
 		paramsTable := lL.NewTable()
+
+		fetchedParamsTable := lL.NewTable()
 		if fetchedParams, ok := req.Params.(map[string]any); ok {
 			for k, v := range fetchedParams {
-				lL.SetField(paramsTable, k, ConvertGolangTypesToLua(lL, v))
+				lL.SetField(fetchedParamsTable, k, ConvertGolangTypesToLua(lL, v))
 			}
 		}
+		
+		getter := lL.NewFunction(func(L *lua.LState) int {
+			path := L.OptString(1, "")
+			def := L.Get(2)
+
+			get := func(tbl *lua.LTable, path string) lua.LValue {
+				if path == "" {
+					return tbl
+				}
+				current := tbl
+				parts := strings.Split(path, ".")
+				size := len(parts)
+				for index, key := range parts {
+					val := current.RawGetString(key)
+					if tblVal, ok := val.(*lua.LTable); ok {
+						current = tblVal
+					} else {
+						if index == size - 1 {
+							return val
+						}
+						return lua.LNil
+					}
+				}
+				return lua.LNil
+			}
+				
+			val := get(fetchedParamsTable, path)
+			if val == lua.LNil && def != lua.LNil {
+				L.Push(def)
+			} else {
+				L.Push(val)
+			}
+			return 1
+		})
+
+		lL.SetField(paramsTable, "get", getter)
 		lL.SetField(inTable, "params", paramsTable)
 
 		outTable := lL.NewTable()
