@@ -31,7 +31,7 @@ func write(nid string, w http.ResponseWriter, msg *RPCResponse) error {
 	} else {
 		msg.Checksum = generateChecksum(msg.Error)
 	}
-	
+
 	if nid != "" {
 		msg.ResponsibleNode = nid
 	}
