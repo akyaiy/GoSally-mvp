@@ -108,8 +108,6 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 			for i, v := range params {
 				fetchedParamsTable.RawSetInt(i+1, ConvertGolangTypesToLua(L, v))
 			}
-		default:
-			L.SetField(fetchedParamsTable, "_", ConvertGolangTypesToLua(L, params))
 		}
 		
 
