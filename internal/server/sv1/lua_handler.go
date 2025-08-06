@@ -50,6 +50,7 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 	for _, k := range []string{"write", "output", "flush", "read", "input"} {
 		ioMod.RawSetString(k, lua.LNil)
 	}
+	L.Env.RawSetString("print", lua.LNil)
 
 	for _, name := range []string{"stdout", "stderr", "stdin"} {
 	stream := ioMod.RawGetString(name)
