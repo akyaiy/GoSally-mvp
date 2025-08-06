@@ -38,6 +38,7 @@ func jwtEncode(L *lua.LState) int {
 	payload.ForEach(func(key, value lua.LValue) {
 		claims[key.String()] = ConvertLuaTypesToGolang(value)
 	})
+	claims["iat"] = time.Now().Unix()
 	claims["exp"] = time.Now().Add(expDuration).Unix()
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
