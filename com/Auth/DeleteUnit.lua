@@ -47,13 +47,13 @@ if err or not data then
   return
 end
 
-if data.session_uuid ~= session.id then
-  return error_response("Access denied")
-end
+-- if data.session_uuid ~= session.id then
+--   return error_response("Access denied")
+-- end
 
-if data.key ~= sha256.sum(session.request.address .. session.id .. session.request.headers.get("user-agent", "noagent")) then
-  return error_response("Access denied")
-end
+-- if data.key ~= sha256.sum(session.request.address .. session.id .. session.request.headers.get("user-agent", "noagent")) then
+--   return error_response("Access denied")
+-- end
 
 if not params then
   return error_response("no params provided")
