@@ -53,12 +53,12 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 	L.Env.RawSetString("print", lua.LNil)
 
 	for _, name := range []string{"stdout", "stderr", "stdin"} {
-	stream := ioMod.RawGetString(name)
-	if t, ok := stream.(*lua.LUserData); ok {
+		stream := ioMod.RawGetString(name)
+		if t, ok := stream.(*lua.LUserData); ok {
 			t.Metatable = lua.LNil
 		}
 	}
-	
+
 	seed := rand.Int()
 
 	loadSessionMod := func(L *lua.LState) int {
@@ -95,14 +95,14 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 			}
 			return 1
 		})
-		
+
 		fetchedParamsTable := L.NewTable()
 		if fetchedParams, ok := req.Params.(map[string]any); ok {
 			for k, v := range fetchedParams {
 				L.SetField(fetchedParamsTable, k, ConvertGolangTypesToLua(L, v))
 			}
 		}
-		
+
 		paramsGetter := L.NewFunction(func(L *lua.LState) int {
 			path := L.OptString(1, "")
 			def := L.Get(2)
@@ -119,7 +119,7 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 					if tblVal, ok := val.(*lua.LTable); ok {
 						current = tblVal
 					} else {
-						if index == size - 1 {
+						if index == size-1 {
 							return val
 						}
 						return lua.LNil
@@ -127,7 +127,7 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 				}
 				return lua.LNil
 			}
-				
+
 			val := get(fetchedParamsTable, path)
 			if val == lua.LNil && def != lua.LNil {
 				L.Push(def)
@@ -412,8 +412,9 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 	L.PreloadModule("internal.session", loadSessionMod)
 	L.PreloadModule("internal.log", loadLogMod)
 	L.PreloadModule("internal.net", loadNetMod)
-	L.PreloadModule("internal.database.sqlite", loadDBMod(llog))
+	L.PreloadModule("internal.database.sqlite", loadDBMod(llog, fmt.Sprint(seed)))
 	L.PreloadModule("internal.crypt.bcrypt", loadCryptbcryptMod)
+	L.PreloadModule("internal.crypt.jwt", loadJWTMod(llog, fmt.Sprint(seed)))
 
 	llog.Debug("preparing environment")
 	prep := filepath.Join(*h.x.Config.Conf.Node.ComDir, "_prepare.lua")
