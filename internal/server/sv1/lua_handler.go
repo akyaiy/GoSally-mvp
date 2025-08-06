@@ -99,11 +99,19 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 		})
 
 		fetchedParamsTable := L.NewTable()
-		if fetchedParams, ok := req.Params.(map[string]any); ok {
-			for k, v := range fetchedParams {
+		switch params := req.Params.(type) {
+		case map[string]any:
+			for k, v := range params {
 				L.SetField(fetchedParamsTable, k, ConvertGolangTypesToLua(L, v))
 			}
+		case []any:
+			for i, v := range params {
+				fetchedParamsTable.RawSetInt(i+1, ConvertGolangTypesToLua(L, v))
+			}
+		default:
+			L.SetField(fetchedParamsTable, "_", ConvertGolangTypesToLua(L, params))
 		}
+		
 
 		paramsGetter := L.NewFunction(func(L *lua.LState) int {
 			path := L.OptString(1, "")
