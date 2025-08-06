@@ -125,7 +125,7 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 						return lua.LNil
 					}
 				}
-				return lua.LNil
+				return current
 			}
 
 			val := get(fetchedParamsTable, path)
