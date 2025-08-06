@@ -447,17 +447,13 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 	sessionVal := loadedTbl.RawGetString("internal.session")
 	sessionTbl, ok := sessionVal.(*lua.LTable)
 	if !ok {
-		return rpc.NewResponse(map[string]any{
-			"responsible-node": h.cs.UUID32,
-		}, req.ID)
+		return rpc.NewResponse(nil, req.ID)
 	}
 
 	tag := sessionTbl.RawGetString("__gosally_internal")
 	if tag.Type() != lua.LTString || tag.String() != fmt.Sprint(seed) {
 		llog.Debug("stock session module is not imported: wrong seed", slog.String("script", path))
-		return rpc.NewResponse(map[string]any{
-			"responsible-node": h.cs.UUID32,
-		}, req.ID)
+		return rpc.NewResponse(nil, req.ID)
 	}
 
 	outVal := sessionTbl.RawGetString("response")
@@ -500,6 +496,5 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 	} else {
 		payload["message"] = ConvertLuaTypesToGolang(resultVal)
 	}
-	payload["responsible-node"] = h.cs.UUID32
 	return rpc.NewResponse(payload, req.ID)
 }

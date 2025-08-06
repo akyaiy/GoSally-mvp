@@ -11,10 +11,13 @@ type RPCRequest struct {
 }
 
 type RPCResponse struct {
-	JSONRPC string           `json:"jsonrpc"`
-	ID      *json.RawMessage `json:"id"`
-	Result  any              `json:"result,omitempty"`
-	Error   any              `json:"error,omitempty"`
+	JSONRPC         string           `json:"jsonrpc"`
+	ID              *json.RawMessage `json:"id"`
+	Result          any              `json:"result,omitempty"`
+	Error           any              `json:"error,omitempty"`
+	ResponsibleNode string           `json:"responsible-node,omitempty"`
+	Salt            string           `json:"salt,omitempty"`
+	Checksum        string           `json:"checksum,omitempty"`
 }
 
 const (

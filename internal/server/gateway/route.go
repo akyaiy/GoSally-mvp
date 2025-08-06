@@ -26,7 +26,7 @@ func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Session-UUID", sessionUUID)
 	if !gs.sm.Add(sessionUUID) {
 		gs.x.SLog.Debug("session is busy", slog.String("session-uuid", sessionUUID))
-		rpc.WriteError(w, &rpc.RPCResponse{
+		rpc.WriteError(gs.cs.UUID32, w, &rpc.RPCResponse{
 			Error: map[string]any{
 				"code":    rpc.ErrSessionIsBusy,
 				"message": rpc.ErrSessionIsBusyS,
@@ -40,7 +40,7 @@ func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		gs.x.SLog.Debug("failed to read body", slog.String("err", err.Error()))
 		w.WriteHeader(http.StatusBadRequest)
-		rpc.WriteError(w, &rpc.RPCResponse{
+		rpc.WriteError(gs.cs.UUID32, w, &rpc.RPCResponse{
 			JSONRPC: rpc.JSONRPCVersion,
 			ID:      nil,
 			Error: map[string]any{
@@ -60,7 +60,7 @@ func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 		if err := json.Unmarshal(body, &single); err != nil {
 			gs.x.SLog.Debug("failed to parse json", slog.String("err", err.Error()))
 			w.WriteHeader(http.StatusBadRequest)
-			rpc.WriteError(w, &rpc.RPCResponse{
+			rpc.WriteError(gs.cs.UUID32, w, &rpc.RPCResponse{
 				JSONRPC: rpc.JSONRPCVersion,
 				ID:      nil,
 				Error: map[string]any{
@@ -76,7 +76,7 @@ func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte(""))
 			return
 		}
-		rpc.WriteResponse(w, resp)
+		rpc.WriteResponse(gs.cs.UUID32, w, resp)
 		return
 	}
 
