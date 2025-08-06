@@ -44,7 +44,7 @@ func getDBMutex(dbPath string) *sync.RWMutex {
 	return mtx
 }
 
-func loadDBMod(llog *slog.Logger) func(*lua.LState) int {
+func loadDBMod(llog *slog.Logger, sid string) func(*lua.LState) int {
 	return func(L *lua.LState) int {
 		llog.Debug("import module db-sqlite")
 		dbMod := L.NewTable()
@@ -85,7 +85,7 @@ func loadDBMod(llog *slog.Logger) func(*lua.LState) int {
 			"close": dbClose,
 		}))
 
-		L.SetField(dbMod, "__gosally_internal", lua.LString("0"))
+		L.SetField(dbMod, "__gosally_internal", lua.LString(sid))
 		L.Push(dbMod)
 		return 1
 	}
