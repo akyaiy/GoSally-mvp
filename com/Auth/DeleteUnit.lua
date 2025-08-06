@@ -1,13 +1,14 @@
 -- com/DeleteUnit.lua
 
 ---@diagnostic disable: redefined-local
-local db = require("internal.database-sqlite").connect("db/user-database.db", {log = true})
+local db = require("internal.database.sqlite").connect("db/user-database.db", {log = true})
 local log = require("internal.log")
 local session = require("internal.session")
 local crypt = require("internal.crypt.bcrypt")
+local jwt = require("internal.crypt.jwt")
 
 local params = session.request.params.get()
-local token = session.request.headers.get("x-session-token")
+local token = session.request.headers.get("authorization")
 
 local function close_db()
   if db then
@@ -25,12 +26,32 @@ local function error_response(message, code, data)
   close_db()
 end
 
-if not params then
-  return error_response("no params provided")
+if not token or type(token) ~= "string" then
+  return error_response("Access denied")
 end
 
-if not (token and token == require("_config").token()) then
-  return error_response("access denied")
+local prefix = "Bearer "
+if token:sub(1, #prefix) ~= prefix then
+  return error_response("Invalid Authorization scheme")
+end
+
+local access_token = token:sub(#prefix + 1)
+
+local err, data = jwt.decode(access_token, { secret = require("_config").token() })
+
+if err or not data then
+  session.response.error = {
+    message = err
+  }
+  return
+end
+
+if data.session_uuid ~= session.id then
+  return error_response("Access denied")
+end
+
+if not params then
+  return error_response("no params provided")
 end
 
 if not (params.username and params.email and params.password) then

@@ -1,13 +1,14 @@
 -- com/GetAccess
 
 ---@diagnostic disable: redefined-local
-local db = require("internal.database-sqlite").connect("db/user-database.db", {log = true})
+local db = require("internal.database.sqlite").connect("db/user-database.db", {log = true})
 local log = require("internal.log")
 local session = require("internal.session")
 local crypt = require("internal.crypt.bcrypt")
+local jwt = require("internal.crypt.jwt")
 
 local params = session.request.params.get()
-local token = session.request.headers.get("x-session-token")
+local secret = require("_config").token()
 
 local function close_db()
   if db then
@@ -27,10 +28,6 @@ end
 
 if not params then
   return error_response("No params provided")
-end
-
-if not (token and token == require("_config").token()) then
-  return error_response("access denied")
 end
 
 if not (params.username and params.email and params.password) then
@@ -62,13 +59,14 @@ if not ok then
   return error_response("Invalid password")
 end
 
+local token = jwt.encode({
+  secret = secret,
+  payload = { session_uuid = session.id, admin_user = params.username },
+  expires_in = 3600
+})
+
 session.response.result = {
-  user = {
-    id = unit.id,
-    username = unit.username,
-    email = unit.email,
-    created_at = unit.created_at
-  }
+  access_token = token
 }
 
 close_db()
