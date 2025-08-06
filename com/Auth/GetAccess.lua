@@ -6,6 +6,7 @@ local log = require("internal.log")
 local session = require("internal.session")
 local crypt = require("internal.crypt.bcrypt")
 local jwt = require("internal.crypt.jwt")
+local sha256 = require("internal.crypt.sha256")
 
 local params = session.request.params.get()
 local secret = require("_config").token()
@@ -61,7 +62,10 @@ end
 
 local token = jwt.encode({
   secret = secret,
-  payload = { session_uuid = session.id, admin_user = params.username },
+  payload = { session_uuid = session.id,
+    admin_user = params.username,
+    key = sha256.sum(session.request.address .. session.id .. session.request.headers.get("user-agent", "noagent"))
+  },
   expires_in = 3600
 })
 
