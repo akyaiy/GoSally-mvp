@@ -25,6 +25,12 @@ func NewError(code int, message string, data any, id *json.RawMessage) *RPCRespo
 }
 
 func NewResponse(result any, id *json.RawMessage) *RPCResponse {
+	if result == nil {
+		return &RPCResponse{
+			JSONRPC: JSONRPCVersion,
+			ID:      id,
+		}
+	}
 	return &RPCResponse{
 		JSONRPC: JSONRPCVersion,
 		ID:      id,

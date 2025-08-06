@@ -149,8 +149,6 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 		L.SetField(inTable, "params", paramsTable)
 
 		outTable := L.NewTable()
-		resultTable := L.NewTable()
-		L.SetField(outTable, "result", resultTable)
 
 		L.SetField(inTable, "address", lua.LString(r.RemoteAddr))
 		L.SetField(sessionMod, "request", inTable)
@@ -518,11 +516,14 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 	}
 
 	resultVal := outTbl.RawGetString("result")
-	payload := make(map[string]any)
-	if tbl, ok := resultVal.(*lua.LTable); ok {
-		tbl.ForEach(func(k, v lua.LValue) { payload[k.String()] = ConvertLuaTypesToGolang(v) })
-	} else {
-		payload["message"] = ConvertLuaTypesToGolang(resultVal)
+	if resultVal != lua.LNil {
+		payload := make(map[string]any)
+		if tbl, ok := resultVal.(*lua.LTable); ok {
+			tbl.ForEach(func(k, v lua.LValue) { payload[k.String()] = ConvertLuaTypesToGolang(v) })
+		} else {
+			return rpc.NewResponse(ConvertLuaTypesToGolang(resultVal), req.ID)
+		}
+		return rpc.NewResponse(payload, req.ID)
 	}
-	return rpc.NewResponse(payload, req.ID)
+	return rpc.NewResponse(nil, req.ID)
 }

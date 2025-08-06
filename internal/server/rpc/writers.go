@@ -28,7 +28,7 @@ func write(nid string, w http.ResponseWriter, msg *RPCResponse) error {
 	msg.Salt = generateSalt()
 	if msg.Result != nil {
 		msg.Checksum = generateChecksum(msg.Result)
-	} else {
+	} else if msg.Error != nil {
 		msg.Checksum = generateChecksum(msg.Error)
 	}
 
