@@ -3,6 +3,8 @@ package sv1
 // TODO: make a lua state pool using sync.Pool
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"log/slog"
@@ -409,11 +411,37 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 		return 1
 	}
 
+	loadCryptbsha256Mod := func(L *lua.LState) int {
+		llog.Debug("import module crypt.sha256", slog.String("script", path))
+		sha265mod := L.NewTable()
+
+		L.SetField(sha265mod, "sum", L.NewFunction(func(l *lua.LState) int {
+			data := ConvertLuaTypesToGolang(L.Get(1))
+			dataStr, ok := data.(string)
+			if !ok {
+				L.Push(lua.LNil)
+				L.Push(lua.LString("error: data must be a string"))
+				return 2
+			}
+
+			hash := sha256.Sum256([]byte(dataStr))
+
+			L.Push(lua.LString(hex.EncodeToString(hash[:])))
+			L.Push(lua.LNil)
+			return 2
+		}))
+
+		L.SetField(sha265mod, "__gosally_internal", lua.LString(fmt.Sprint(seed)))
+		L.Push(sha265mod)
+		return 1
+	}
+
 	L.PreloadModule("internal.session", loadSessionMod)
 	L.PreloadModule("internal.log", loadLogMod)
 	L.PreloadModule("internal.net", loadNetMod)
 	L.PreloadModule("internal.database.sqlite", loadDBMod(llog, fmt.Sprint(seed)))
 	L.PreloadModule("internal.crypt.bcrypt", loadCryptbcryptMod)
+	L.PreloadModule("internal.crypt.sha256", loadCryptbsha256Mod)
 	L.PreloadModule("internal.crypt.jwt", loadJWTMod(llog, fmt.Sprint(seed)))
 
 	llog.Debug("preparing environment")
