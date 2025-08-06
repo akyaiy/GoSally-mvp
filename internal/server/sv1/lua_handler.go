@@ -412,7 +412,7 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 	L.PreloadModule("internal.session", loadSessionMod)
 	L.PreloadModule("internal.log", loadLogMod)
 	L.PreloadModule("internal.net", loadNetMod)
-	L.PreloadModule("internal.database-sqlite", loadDBMod(llog))
+	L.PreloadModule("internal.database.sqlite", loadDBMod(llog))
 	L.PreloadModule("internal.crypt.bcrypt", loadCryptbcryptMod)
 
 	llog.Debug("preparing environment")
