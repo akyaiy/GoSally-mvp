@@ -2,6 +2,7 @@ package sv1
 
 import (
 	"fmt"
+	"reflect"
 
 	lua "github.com/yuin/gopher-lua"
 )
@@ -44,85 +45,44 @@ func ConvertLuaTypesToGolang(value lua.LValue) any {
 }
 
 func ConvertGolangTypesToLua(L *lua.LState, val any) lua.LValue {
-	switch v := val.(type) {
-
-	case nil:
+	if val == nil {
 		return lua.LNil
+	}
 
-	case string:
-		return lua.LString(v)
-	case bool:
-		return lua.LBool(v)
-	case int:
-		return lua.LNumber(v)
-	case int8:
-		return lua.LNumber(v)
-	case int16:
-		return lua.LNumber(v)
-	case int32:
-		return lua.LNumber(v)
-	case int64:
-		return lua.LNumber(v)
-	case uint:
-		return lua.LNumber(v)
-	case uint8:
-		return lua.LNumber(v)
-	case uint16:
-		return lua.LNumber(v)
-	case uint32:
-		return lua.LNumber(v)
-	case uint64:
-		return lua.LNumber(v)
-	case float32:
-		return lua.LNumber(v)
-	case float64:
-		return lua.LNumber(v)
+	rv := reflect.ValueOf(val)
+	rt := rv.Type()
 
-	case []string:
+	switch rt.Kind() {
+	case reflect.String:
+		return lua.LString(rv.String())
+	case reflect.Bool:
+		return lua.LBool(rv.Bool())
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return lua.LNumber(rv.Int())
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return lua.LNumber(rv.Uint())
+	case reflect.Float32, reflect.Float64:
+		return lua.LNumber(rv.Float())
+
+	case reflect.Slice, reflect.Array:
 		tbl := L.NewTable()
-		for i, s := range v {
-			tbl.RawSetInt(i+1, lua.LString(s))
-		}
-		return tbl
-	case []int:
-		tbl := L.NewTable()
-		for i, n := range v {
-			tbl.RawSetInt(i+1, lua.LNumber(n))
-		}
-		return tbl
-	case []float64:
-		tbl := L.NewTable()
-		for i, f := range v {
-			tbl.RawSetInt(i+1, lua.LNumber(f))
-		}
-		return tbl
-	case []any:
-		tbl := L.NewTable()
-		for i, item := range v {
-			tbl.RawSetInt(i+1, ConvertGolangTypesToLua(L, item))
+		for i := 0; i < rv.Len(); i++ {
+			tbl.RawSetInt(i+1, ConvertGolangTypesToLua(L, rv.Index(i).Interface()))
 		}
 		return tbl
 
-	case map[string]string:
-		tbl := L.NewTable()
-		for k, s := range v {
-			tbl.RawSetString(k, lua.LString(s))
+	case reflect.Map:
+		if rt.Key().Kind() == reflect.String {
+			tbl := L.NewTable()
+			for _, key := range rv.MapKeys() {
+				val := rv.MapIndex(key)
+				tbl.RawSetString(key.String(), ConvertGolangTypesToLua(L, val.Interface()))
+			}
+			return tbl
 		}
-		return tbl
-	case map[string]int:
-		tbl := L.NewTable()
-		for k, n := range v {
-			tbl.RawSetString(k, lua.LNumber(n))
-		}
-		return tbl
-	case map[string]any:
-		tbl := L.NewTable()
-		for k, val := range v {
-			tbl.RawSetString(k, ConvertGolangTypesToLua(L, val))
-		}
-		return tbl
 
 	default:
-		return lua.LString(fmt.Sprintf("%v", v))
+		return lua.LString(fmt.Sprintf("%v", val))
 	}
+	return lua.LString(fmt.Sprintf("%v", val))
 }
