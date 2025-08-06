@@ -17,7 +17,7 @@ type RPCResponse struct {
 	Error           any              `json:"error,omitempty"`
 	ResponsibleNode string           `json:"responsible-node,omitempty"`
 	Salt            string           `json:"salt,omitempty"`
-	Checksum        string           `json:"checksum,omitempty"`
+	Checksum        string           `json:"checksum-md5,omitempty"`
 }
 
 const (
