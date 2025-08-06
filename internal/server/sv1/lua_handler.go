@@ -46,6 +46,18 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 	L := lua.NewState()
 	defer L.Close()
 
+	ioMod := L.GetGlobal("io").(*lua.LTable)
+	for _, k := range []string{"write", "output", "flush", "read", "input"} {
+		ioMod.RawSetString(k, lua.LNil)
+	}
+
+	for _, name := range []string{"stdout", "stderr", "stdin"} {
+	stream := ioMod.RawGetString(name)
+	if t, ok := stream.(*lua.LUserData); ok {
+			t.Metatable = lua.LNil
+		}
+	}
+	
 	seed := rand.Int()
 
 	loadSessionMod := func(L *lua.LState) int {
@@ -59,7 +71,7 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 		for k, v := range r.Header {
 			L.SetField(fetchedHeadersTable, k, ConvertGolangTypesToLua(L, v))
 		}
-		
+
 		headersGetter := L.NewFunction(func(L *lua.LState) int {
 			path := L.OptString(1, "")
 			def := L.Get(2)
