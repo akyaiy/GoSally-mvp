@@ -60,10 +60,9 @@ end
 
 local hashPass = crypt.generate(params.password, crypt.DefaultCost)
 
-local existing, err = db:query("SELECT 1 FROM users WHERE deleted = 0 AND (email = ? OR username = ? OR phone_number = ?) LIMIT 1", {
+local existing, err = db:query("SELECT 1 FROM users WHERE deleted = 0 AND (email = ? OR username = ?) LIMIT 1", {
   params.email,
-  params.username,
-  params.phone_number
+  params.username
 })
 
 if err ~= nil then
