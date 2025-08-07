@@ -100,6 +100,9 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 
 		fetchedParamsTable := L.NewTable()
 		switch params := req.Params.(type) {
+		case nil:
+			print(1)
+			fetchedParamsTable.RawSetInt(1, lua.LNil)
 		case map[string]any:
 			for k, v := range params {
 				L.SetField(fetchedParamsTable, k, ConvertGolangTypesToLua(L, v))
@@ -108,6 +111,8 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 			for i, v := range params {
 				fetchedParamsTable.RawSetInt(i+1, ConvertGolangTypesToLua(L, v))
 			}
+		default:
+			fetchedParamsTable.RawSetInt(1, lua.LNil)
 		}
 		
 
@@ -116,6 +121,9 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 			def := L.Get(2)
 
 			get := func(tbl *lua.LTable, path string) lua.LValue {
+				if tbl.RawGetInt(1) == lua.LNil {
+					return lua.LNil
+				}
 				if path == "" {
 					return tbl
 				}
@@ -521,9 +529,8 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 		return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, nil, req.ID)
 	}
 
-	resultVal := outTbl.RawGetString("result")
-	if resultVal != lua.LNil {
-    return rpc.NewResponse(ConvertLuaTypesToGolang(resultVal), req.ID)
+	if resultVal := outTbl.RawGetString("result"); resultVal != lua.LNil {
+		return rpc.NewResponse(ConvertLuaTypesToGolang(resultVal), req.ID)
 	}
 	return rpc.NewResponse(nil, req.ID)
 }
