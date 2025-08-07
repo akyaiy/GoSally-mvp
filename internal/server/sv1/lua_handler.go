@@ -48,6 +48,9 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 	L := lua.NewState()
 	defer L.Close()
 
+	osMod := L.GetGlobal("os").(*lua.LTable)
+	L.SetField(osMod, "exit", lua.LNil)
+	
 	ioMod := L.GetGlobal("io").(*lua.LTable)
 	for _, k := range []string{"write", "output", "flush", "read", "input"} {
 		ioMod.RawSetString(k, lua.LNil)
@@ -101,7 +104,6 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 		fetchedParamsTable := L.NewTable()
 		switch params := req.Params.(type) {
 		case nil:
-			print(1)
 			fetchedParamsTable.RawSetInt(1, lua.LNil)
 		case map[string]any:
 			for k, v := range params {
@@ -170,7 +172,7 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 
 		L.SetField(sessionMod, "id", lua.LString(sid))
 
-		L.SetField(sessionMod, "__gosally_internal", lua.LString(fmt.Sprint(seed)))
+		L.SetField(sessionMod, "__seed", lua.LString(fmt.Sprint(seed)))
 		L.Push(sessionMod)
 		return 1
 	}
@@ -217,7 +219,7 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 			}))
 		}
 
-		L.SetField(logMod, "__gosally_internal", lua.LString(fmt.Sprint(seed)))
+		L.SetField(logMod, "__seed", lua.LString(fmt.Sprint(seed)))
 		L.Push(logMod)
 		return 1
 	}
@@ -346,7 +348,7 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 
 		L.SetField(netMod, "http", netModhttp)
 
-		L.SetField(netMod, "__gosally_internal", lua.LString(fmt.Sprint(seed)))
+		L.SetField(netMod, "__seed", lua.LString(fmt.Sprint(seed)))
 		L.Push(netMod)
 		return 1
 	}
@@ -418,7 +420,7 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 			return 1
 		}))
 
-		L.SetField(bcryptMod, "__gosally_internal", lua.LString(fmt.Sprint(seed)))
+		L.SetField(bcryptMod, "__seed", lua.LString(fmt.Sprint(seed)))
 		L.Push(bcryptMod)
 		return 1
 	}
@@ -443,7 +445,7 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 			return 2
 		}))
 
-		L.SetField(sha265mod, "__gosally_internal", lua.LString(fmt.Sprint(seed)))
+		L.SetField(sha265mod, "__seed", lua.LString(fmt.Sprint(seed)))
 		L.Push(sha265mod)
 		return 1
 	}
@@ -490,7 +492,7 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 		return rpc.NewResponse(nil, req.ID)
 	}
 
-	tag := sessionTbl.RawGetString("__gosally_internal")
+	tag := sessionTbl.RawGetString("__seed")
 	if tag.Type() != lua.LTString || tag.String() != fmt.Sprint(seed) {
 		llog.Debug("stock session module is not imported: wrong seed", slog.String("script", path))
 		return rpc.NewResponse(nil, req.ID)
@@ -528,7 +530,7 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 		}
 		return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, nil, req.ID)
 	}
-
+	
 	if resultVal := outTbl.RawGetString("result"); resultVal != lua.LNil {
 		return rpc.NewResponse(ConvertLuaTypesToGolang(resultVal), req.ID)
 	}

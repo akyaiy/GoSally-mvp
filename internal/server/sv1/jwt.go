@@ -16,7 +16,7 @@ func loadJWTMod(llog *slog.Logger, sid string) func(*lua.LState) int {
 		L.SetField(jwtMod, "encode", L.NewFunction(jwtEncode))
 		L.SetField(jwtMod, "decode", L.NewFunction(jwtDecode))
 
-		L.SetField(jwtMod, "__gosally_internal", lua.LString(sid))
+		L.SetField(jwtMod, "__seed", lua.LString(sid))
 		L.Push(jwtMod)
 		return 1
 	}

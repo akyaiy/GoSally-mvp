@@ -85,7 +85,7 @@ func loadDBMod(llog *slog.Logger, sid string) func(*lua.LState) int {
 			"close": dbClose,
 		}))
 
-		L.SetField(dbMod, "__gosally_internal", lua.LString(sid))
+		L.SetField(dbMod, "__seed", lua.LString(sid))
 		L.Push(dbMod)
 		return 1
 	}
