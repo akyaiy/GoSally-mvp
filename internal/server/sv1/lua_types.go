@@ -3,6 +3,7 @@ package sv1
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 
 	lua "github.com/yuin/gopher-lua"
 )
@@ -18,19 +19,56 @@ func ConvertLuaTypesToGolang(value lua.LValue) any {
 	case lua.LTTable:
 		tbl := value.(*lua.LTable)
 
-		var arr []any
+		maxIdx := 0
 		isArray := true
-		tbl.ForEach(func(key, val lua.LValue) {
-			if key.Type() != lua.LTNumber {
-				isArray = false
+
+		var isNumeric = false
+		tbl.ForEach(func(key, _ lua.LValue) {
+			var numKey lua.LValue
+			var ok bool
+			switch key.Type() {
+			case lua.LTString:
+				numKey, ok = key.(lua.LString)
+				if !ok {
+					isArray = false
+					return
+				}
+			case lua.LTNumber:
+				numKey, ok = key.(lua.LNumber)
+				if !ok {
+					isArray = false
+					return
+				}
+				isNumeric = true
 			}
-			arr = append(arr, ConvertLuaTypesToGolang(val))
+			
+			num, err := strconv.Atoi(numKey.String())
+			if err != nil {
+				isArray = false
+				return
+			}
+			if num < 1 {
+				isArray = false
+				return
+			}
+			if num > maxIdx {
+				maxIdx = num
+			}
 		})
 
 		if isArray {
+			arr := make([]any, maxIdx)
+			if isNumeric {
+				for i := 1; i <= maxIdx; i++ {
+					arr[i-1] = ConvertLuaTypesToGolang(tbl.RawGetInt(i))
+				}
+			} else {
+				for i := 1; i <= maxIdx; i++ {
+					arr[i-1] = ConvertLuaTypesToGolang(tbl.RawGetString(strconv.Itoa(i)))
+				}
+			}
 			return arr
 		}
-
 		result := make(map[string]any)
 		tbl.ForEach(func(key, val lua.LValue) {
 			result[key.String()] = ConvertLuaTypesToGolang(val)

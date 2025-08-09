@@ -30,7 +30,7 @@ func (h *HandlerV1) Handle(_ context.Context, sid string, r *http.Request, req *
 	default:
 		// JSON-RPC 2.0 Specification:
 		// https://www.jsonrpc.org/specification#parameter_structures
-		// 
+		//
 		// "params" MUST be either an *array* or an *object* if included.
 		// Any other type (e.g., a number, string, or boolean) is INVALID.
 		h.x.SLog.Info("invalid request received", slog.String("issue", rpc.ErrInvalidParamsS))

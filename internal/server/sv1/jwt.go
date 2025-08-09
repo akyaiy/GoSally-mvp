@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	lua "github.com/yuin/gopher-lua"
 )
 
