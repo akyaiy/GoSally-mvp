@@ -43,7 +43,7 @@ func addInitiatorHeaders(sid string, req *http.Request, headers http.Header) {
 // I will be only glad.
 // TODO: make this huge function more harmonious by dividing responsibilities
 func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, path string) *rpc.RPCResponse {
-	var __exit = -1
+	var __exit = 0
 
 	llog := h.x.SLog.With(slog.String("session-id", sid))
 	llog.Debug("handling LUA")
@@ -193,22 +193,33 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 			}
 
 			resFTable := scriptDataTable.RawGetString("result")
-			
-			// switch resTable.Type() {
-			// case lua.LTTable:
-				if resPTable, ok := res.(*lua.LTable); ok {
-					resPTable.ForEach(func(key, value lua.LValue) {
-						L.SetField(resFTable, key.String(), value)
-					})
-				} else {
-					L.SetField(scriptDataTable, "result", res)
-				}
-			// default:
-			// 	L.SetField(resTable, key.String(), value)
-			// }
+			if resPTable, ok := res.(*lua.LTable); ok {
+				resPTable.ForEach(func(key, value lua.LValue) {
+					L.SetField(resFTable, key.String(), value)
+				})
+			} else {
+				L.SetField(scriptDataTable, "result", res)
+			}
 			
 			__exit = 0
 			L.RaiseError("__successfull")
+			return 0
+		}))
+
+		L.SetField(outTable, "set", L.NewFunction(func(L *lua.LState) int {
+			res := L.Get(1)
+			if res == lua.LNil {
+				return 0
+			}
+
+			resFTable := scriptDataTable.RawGetString("result")
+			if resPTable, ok := res.(*lua.LTable); ok {
+				resPTable.ForEach(func(key, value lua.LValue) {
+					L.SetField(resFTable, key.String(), value)
+				})
+			} else {
+				L.SetField(scriptDataTable, "result", res)
+			}
 			return 0
 		}))
 
@@ -240,6 +251,32 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 
 			__exit = 1
 			L.RaiseError("__unsuccessfull")
+			return 0
+		}))
+
+		L.SetField(outTable, "set_error", L.NewFunction(func(L *lua.LState) int {
+			var params [3]lua.LValue
+			for i := range 3 {
+				params[i] = L.Get(i + 1)
+			}
+			if errTable, ok := scriptDataTable.RawGetString("error").(*lua.LTable); ok {
+				for _, v := range params {
+					switch v.Type() {
+					case lua.LTNumber:
+						if n, ok := v.(lua.LNumber); ok {
+							L.SetField(errTable, "code", n)
+						}
+					case lua.LTString:
+						if s, ok := v.(lua.LString); ok {
+							L.SetField(errTable, "message", s)
+						}
+					case lua.LTTable:
+						if tbl, ok := v.(*lua.LTable); ok {
+							L.SetField(errTable, "data", tbl)
+						}
+					}
+				}
+			}
 			return 0
 		}))
 
@@ -543,7 +580,8 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 		}
 	}
 	llog.Debug("executing script", slog.String("script", path))
-	if err := L.DoFile(path); err != nil && __exit == -1 {
+	err := L.DoFile(path)
+	if err != nil && __exit != 0 && __exit != 1 {
 		llog.Error("script error", slog.String("script", path), slog.String("error", err.Error()))
 		return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, nil, req.ID)
 	} 
