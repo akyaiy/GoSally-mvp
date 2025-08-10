@@ -52,6 +52,6 @@ end
 local basePath = "com"
 local layer = params.layer and params.layer:gsub(">", "/") or nil
 
-session.response.result = {
+session.response.send({
   answer = layer and scanDirectory(basePath, layer) or scanDirectory(basePath, "")
-}
+})
