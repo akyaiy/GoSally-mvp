@@ -80,6 +80,7 @@ func InitUUUDHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 		x.Log.Fatalf("uuid load error: %s", err)
 	}
 	cs.UUID32 = uuid32
+	corestate.NODE_UUID = uuid32
 }
 
 func InitRuntimeHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {

@@ -200,7 +200,7 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 			} else {
 				L.SetField(scriptDataTable, "result", res)
 			}
-			
+
 			__exit = 0
 			L.RaiseError("__successfull")
 			return 0
@@ -584,8 +584,7 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 	if err != nil && __exit != 0 && __exit != 1 {
 		llog.Error("script error", slog.String("script", path), slog.String("error", err.Error()))
 		return rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, nil, req.ID)
-	} 
-
+	}
 
 	pkg := L.GetGlobal("package")
 	pkgTbl, ok := pkg.(*lua.LTable)

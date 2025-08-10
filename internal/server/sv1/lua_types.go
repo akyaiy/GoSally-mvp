@@ -41,7 +41,7 @@ func ConvertLuaTypesToGolang(value lua.LValue) any {
 				}
 				isNumeric = true
 			}
-			
+
 			num, err := strconv.Atoi(numKey.String())
 			if err != nil {
 				isArray = false

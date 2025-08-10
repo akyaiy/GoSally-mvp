@@ -11,13 +11,18 @@ type RPCRequest struct {
 }
 
 type RPCResponse struct {
-	JSONRPC         string           `json:"jsonrpc"`
-	ID              *json.RawMessage `json:"id"`
-	Result          any              `json:"result,omitempty"`
-	Error           any              `json:"error,omitempty"`
-	ResponsibleNode string           `json:"responsible-node,omitempty"`
-	Salt            string           `json:"salt,omitempty"`
-	Checksum        string           `json:"checksum-md5,omitempty"`
+	JSONRPC string           `json:"jsonrpc"`
+	ID      *json.RawMessage `json:"id"`
+	Result  any              `json:"result,omitzero"`
+	Error   any              `json:"error,omitzero"`
+	Data    *RPCData         `json:"data,omitzero"`
+}
+
+type RPCData struct {
+	ResponsibleNode string `json:"responsible-node,omitempty"`
+	Salt            string `json:"salt,omitempty"`
+	Checksum        string `json:"checksum-md5,omitempty"`
+	NewSessionUUID  string `json:"new-session-uuid,omitempty"`
 }
 
 const (
