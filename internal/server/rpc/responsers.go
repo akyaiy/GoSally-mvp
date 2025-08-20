@@ -52,7 +52,7 @@ func NewResponse(result any, id *json.RawMessage) *RPCResponse {
 	return &RPCResponse{
 		JSONRPC: JSONRPCVersion,
 		ID:      id,
-		Result: result,
-		Data: GetData(result),
+		Result:  result,
+		Data:    GetData(result),
 	}
 }
