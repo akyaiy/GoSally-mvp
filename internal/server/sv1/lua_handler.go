@@ -43,7 +43,7 @@ func addInitiatorHeaders(sid string, req *http.Request, headers http.Header) {
 // I will be only glad.
 // TODO: make this huge function more harmonious by dividing responsibilities
 func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, path string) *rpc.RPCResponse {
-	var __exit = 0
+	var __exit = -1
 
 	llog := h.x.SLog.With(slog.String("session-id", sid))
 	llog.Debug("handling LUA")
@@ -544,12 +544,7 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 
 		L.SetField(sha265mod, "sum", L.NewFunction(func(l *lua.LState) int {
 			data := ConvertLuaTypesToGolang(L.Get(1))
-			dataStr, ok := data.(string)
-			if !ok {
-				L.Push(lua.LNil)
-				L.Push(lua.LString("error: data must be a string"))
-				return 2
-			}
+			var dataStr = fmt.Sprint(data)
 
 			hash := sha256.Sum256([]byte(dataStr))
 
