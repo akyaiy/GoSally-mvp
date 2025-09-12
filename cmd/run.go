@@ -11,6 +11,7 @@ var runCmd = &cobra.Command{
 	Short:   "Run node normally",
 	Long: `
 "run" starts the node with settings depending on the configuration file`,
+	// hooks.Run essentially the heart of the program
 	Run: hooks.Run,
 }
 
