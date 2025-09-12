@@ -24,4 +24,7 @@ const (
 
 	ErrMethodIsMissing  = -32020
 	ErrMethodIsMissingS = "Method is missing"
+
+	ErrSessionIsBusy  = -32030
+	ErrSessionIsBusyS = "The session is busy"
 )

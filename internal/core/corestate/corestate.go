@@ -1,5 +1,7 @@
 package corestate
 
+var NODE_UUID string
+
 type Stage string
 
 const (

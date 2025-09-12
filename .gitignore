@@ -3,7 +3,11 @@ bin/
 cert/
 tmp/
 .meta/
+db/
+
+com/test.lua
+com/_config.lua
+
 .vscode
 Taskfile.yml
-
 config.yaml

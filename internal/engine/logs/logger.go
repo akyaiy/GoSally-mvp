@@ -10,15 +10,24 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strings"
 
-	"github.com/akyaiy/GoSally-mvp/internal/core/run_manager"
 	"github.com/akyaiy/GoSally-mvp/internal/engine/config"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var GlobalLevel slog.Level
+
+type levelsStruct struct {
+	Available []string
+	Fallback  string
+}
+
+var Levels = levelsStruct{
+	Available: []string{
+		"debug", "info",
+	},
+	Fallback: "info",
+}
 
 type SlogWriter struct {
 	Logger *slog.Logger
@@ -32,11 +41,11 @@ func (w *SlogWriter) Write(p []byte) (n int, err error) {
 }
 
 // SetupLogger initializes and returns a logger based on the provided environment.
-func SetupLogger(o config.Log) (*slog.Logger, error) {
+func SetupLogger(o *config.Log) (*slog.Logger, error) {
 	var handlerOpts = slog.HandlerOptions{}
 	var writer io.Writer = os.Stdout
 
-	switch o.Level {
+	switch *o.Level {
 	case "debug":
 		GlobalLevel = slog.LevelDebug
 		handlerOpts.Level = slog.LevelDebug
@@ -48,32 +57,14 @@ func SetupLogger(o config.Log) (*slog.Logger, error) {
 		handlerOpts.Level = slog.LevelInfo
 	}
 
-	if o.OutPath != "" {
-		repl := map[string]string{
-			"tmp": filepath.Clean(run_manager.RuntimeDir()),
-		}
-		re := regexp.MustCompile(`%(\w+)%`)
-		result := re.ReplaceAllStringFunc(o.OutPath, func(match string) string {
-			sub := re.FindStringSubmatch(match)
-			if len(sub) < 2 {
-				return match
-			}
-			key := sub[1]
-			if val, ok := repl[key]; ok {
-				return val
-			}
-			return match
-		})
-
-		if strings.Contains(o.OutPath, "%tmp%") {
-			relPath := strings.TrimPrefix(result, filepath.Clean(run_manager.RuntimeDir()))
-			if err := run_manager.SetDir(relPath); err != nil {
-				return nil, err
-			}
-		}
-
+	switch *o.OutPath {
+	case "_1STDout":
+		writer = os.Stdout
+	case "_2STDerr":
+		writer = os.Stderr
+	default:
 		logFile := &lumberjack.Logger{
-			Filename:   filepath.Join(result, "event.log"),
+			Filename:   filepath.Join(*o.OutPath, "event.log"),
 			MaxSize:    10,
 			MaxBackups: 5,
 			MaxAge:     28,
@@ -82,6 +73,13 @@ func SetupLogger(o config.Log) (*slog.Logger, error) {
 		writer = logFile
 	}
 
-	log := slog.New(slog.NewJSONHandler(writer, &handlerOpts))
+	var handler slog.Handler
+
+	if *o.JSON {
+		handler = slog.NewJSONHandler(writer, &handlerOpts)
+	} else {
+		handler = slog.NewTextHandler(writer, &handlerOpts)
+	}
+	log := slog.New(handler)
 	return log, nil
 }

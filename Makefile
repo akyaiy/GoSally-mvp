@@ -4,7 +4,7 @@ GOPATH := $(shell go env GOPATH)
 export CONFIG_PATH := ./config.yaml
 export NODE_PATH := $(shell pwd)
 
-LDFLAGS := -X 'github.com/akyaiy/GoSally-mvp/core/config.NodeVersion=v0.0.1-dev'
+LDFLAGS := -X 'github.com/akyaiy/GoSally-mvp/internal/engine/config.NodeVersion=v0.0.1-dev'
 CGO_CFLAGS := -I/usr/local/include
 CGO_LDFLAGS := -L/usr/local/lib -llua5.1 -lm -ldl
 .PHONY: all build run runq test fmt vet lint check clean
@@ -30,7 +30,14 @@ build:
 	@# @echo "CGO_CFLAGS is: '$(CGO_CFLAGS)'"
 	@# @echo "CGO_LDFLAGS is: '$(CGO_LDFLAGS)'"
 	@# CGO_CFLAGS="$(CGO_CFLAGS)" CGO_LDFLAGS="$(CGO_LDFLAGS)" 
-	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(APP_NAME) ./
+	@go build -trimpath -ldflags "-w -s $(LDFLAGS)" -o $(BIN_DIR)/$(APP_NAME) ./
+	@if ! command -v upx >/dev/null 2>&1; then \
+		echo "upx not found, skipping compression."; \
+	elif upx -t $(BIN_DIR)/$(APP_NAME) >/dev/null 2>&1; then \
+		echo "$(BIN_DIR)/$(APP_NAME) already compressed, skipping."; \
+	else \
+		upx $(BIN_DIR)/$(APP_NAME) >/dev/null 2>&1 || true; \
+	fi
 
 run: build
 	@echo "Running!"
@@ -50,8 +57,10 @@ test:
 fmt:
 	@go fmt ./internal/./...
 	@go fmt ./cmd/./...
+	@go fmt ./hooks/./...
 	@$(GOPATH)/bin/goimports -w ./internal/
 	@$(GOPATH)/bin/goimports -w ./cmd/
+	@$(GOPATH)/bin/goimports -w ./hooks/
 
 vet:
 	@go vet ./...
