@@ -33,7 +33,7 @@ var NodeApp = app.New()
 func Run(cmd *cobra.Command, args []string) {
 	NodeApp.InitialHooks(
 		InitGlobalLoggerHook, InitCorestateHook, InitConfigLoadHook,
-		InitUUUDHook, InitRuntimeHook, InitRunlockHook,
+		InitUUIDHook, InitRuntimeHook, InitRunlockHook,
 		InitConfigReplHook, InitConfigPrintHook, InitSLogHook,
 	)
 

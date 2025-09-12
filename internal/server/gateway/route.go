@@ -20,18 +20,14 @@ func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 	sessionUUID := r.Header.Get("X-Session-UUID")
 	if sessionUUID == "" {
 		sessionUUID = uuid.New().String()
+
 	}
 	gs.x.SLog.Debug("new request", slog.String("session-uuid", sessionUUID), slog.Group("connection", slog.String("ip", r.RemoteAddr)))
 
 	w.Header().Set("X-Session-UUID", sessionUUID)
 	if !gs.sm.Add(sessionUUID) {
 		gs.x.SLog.Debug("session is busy", slog.String("session-uuid", sessionUUID))
-		rpc.WriteError(w, &rpc.RPCResponse{
-			Error: map[string]any{
-				"code":    rpc.ErrSessionIsBusy,
-				"message": rpc.ErrSessionIsBusyS,
-			},
-		})
+		rpc.WriteError(w, rpc.NewError(rpc.ErrSessionIsBusy, rpc.ErrSessionIsBusyS, nil, nil))
 		return
 	}
 	defer gs.sm.Delete(sessionUUID)
@@ -40,14 +36,7 @@ func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		gs.x.SLog.Debug("failed to read body", slog.String("err", err.Error()))
 		w.WriteHeader(http.StatusBadRequest)
-		rpc.WriteError(w, &rpc.RPCResponse{
-			JSONRPC: rpc.JSONRPCVersion,
-			ID:      nil,
-			Error: map[string]any{
-				"code":    rpc.ErrInternalError,
-				"message": rpc.ErrInternalErrorS,
-			},
-		})
+		rpc.WriteError(w, rpc.NewError(rpc.ErrInternalError, rpc.ErrInternalErrorS, nil, nil))
 		gs.x.SLog.Info("invalid request received", slog.String("issue", rpc.ErrInternalErrorS))
 		return
 	}
@@ -60,14 +49,7 @@ func (gs *GatewayServer) Handle(w http.ResponseWriter, r *http.Request) {
 		if err := json.Unmarshal(body, &single); err != nil {
 			gs.x.SLog.Debug("failed to parse json", slog.String("err", err.Error()))
 			w.WriteHeader(http.StatusBadRequest)
-			rpc.WriteError(w, &rpc.RPCResponse{
-				JSONRPC: rpc.JSONRPCVersion,
-				ID:      nil,
-				Error: map[string]any{
-					"code":    rpc.ErrParseError,
-					"message": rpc.ErrParseErrorS,
-				},
-			})
+			rpc.WriteError(w, rpc.NewError(rpc.ErrParseError, rpc.ErrParseErrorS, nil, nil))
 			gs.x.SLog.Info("invalid request received", slog.String("issue", rpc.ErrParseErrorS))
 			return
 		}

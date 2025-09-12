@@ -24,6 +24,16 @@ func (h *HandlerV1) Handle(_ context.Context, sid string, r *http.Request, req *
 			return rpc.NewError(rpc.ErrMethodNotFound, rpc.ErrMethodNotFoundS, nil, req.ID)
 		}
 	}
-
-	return h.handleLUA(sid, r, req, method)
+	switch req.Params.(type) {
+	case map[string]any, []any, nil:
+		return h.handleLUA(sid, r, req, method)
+	default:
+		// JSON-RPC 2.0 Specification:
+		// https://www.jsonrpc.org/specification#parameter_structures
+		//
+		// "params" MUST be either an *array* or an *object* if included.
+		// Any other type (e.g., a number, string, or boolean) is INVALID.
+		h.x.SLog.Info("invalid request received", slog.String("issue", rpc.ErrInvalidParamsS))
+		return rpc.NewError(rpc.ErrInvalidParams, rpc.ErrInvalidParamsS, nil, req.ID)
+	}
 }

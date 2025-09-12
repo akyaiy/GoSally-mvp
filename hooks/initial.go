@@ -28,6 +28,7 @@ import (
 	"gopkg.in/ini.v1"
 )
 
+// The config composer needs to be in the global scope
 var Compositor *config.Compositor = config.NewCompositor()
 
 func InitGlobalLoggerHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
@@ -65,7 +66,8 @@ func InitConfigLoadHook(_ context.Context, cs *corestate.CoreState, x *app.AppX)
 	}
 }
 
-func InitUUUDHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
+// The hook reads or prepares a persistent uuid for the node
+func InitUUIDHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	uuid32, err := corestate.GetNodeUUID(filepath.Join(cs.MetaDir, "uuid"))
 	if errors.Is(err, fs.ErrNotExist) {
 		if err := corestate.SetNodeUUID(filepath.Join(cs.NodePath, cs.MetaDir, cs.UUID32DirName)); err != nil {
@@ -80,8 +82,11 @@ func InitUUUDHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 		x.Log.Fatalf("uuid load error: %s", err)
 	}
 	cs.UUID32 = uuid32
+	corestate.NODE_UUID = uuid32
 }
 
+// The hook is responsible for checking the initialization stage 
+// and restarting in some cases
 func InitRuntimeHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	if *x.Config.Env.ParentStagePID != os.Getpid() {
 		// still pre-init stage
@@ -133,6 +138,8 @@ func InitRuntimeHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 }
 
 // post-init stage
+// The hook creates a run.lock file, which contains information 
+// about the process and the node, in the runtime directory.
 func InitRunlockHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	NodeApp.Fallback(func(ctx context.Context, cs *corestate.CoreState, x *app.AppX) {
 		x.Log.Println("Cleaning up...")
@@ -185,6 +192,8 @@ func InitRunlockHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	}
 }
 
+// The hook reads the configuration and replaces special expressions 
+// (%tmp% and so on) in string fields with the required data.
 func InitConfigReplHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	if !slices.Contains(*x.Config.Conf.DisableWarnings, "--WNonStdTmpDir") && os.TempDir() != "/tmp" {
 		x.Log.Printf("%s: %s", colors.PrintWarn(), "Non-standard value specified for temporary directory")
@@ -209,6 +218,8 @@ func InitConfigReplHook(_ context.Context, cs *corestate.CoreState, x *app.AppX)
 	}
 }
 
+// The hook is responsible for outputting the 
+// final config and asking for confirmation.
 func InitConfigPrintHook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) {
 	if *x.Config.Conf.Node.ShowConfig {
 		fmt.Printf("Configuration from %s:\n", x.Config.CMDLine.Run.ConfigPath)
@@ -239,6 +250,8 @@ func InitSLogHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	*x.SLog = *newSlog
 }
 
+// The method goes through the entire config structure through 
+// reflection and replaces string fields with the required ones.
 func processConfig(conf any, replacements map[string]any) error {
 	val := reflect.ValueOf(conf)
 	if val.Kind() == reflect.Ptr {

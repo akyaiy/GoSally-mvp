@@ -1,3 +1,4 @@
+// Package main used only for calling cmd.Execute()
 package main
 
 import (
