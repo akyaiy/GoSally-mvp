@@ -11,3 +11,7 @@ com/_config.lua
 .vscode
 Taskfile.yml
 config.yaml
+
+# Garbage
+com/_Access/GetMasterAccess.lua
+com/_Zones/GetZoneInfo.lua
