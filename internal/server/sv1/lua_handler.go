@@ -542,7 +542,7 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 		llog.Debug("import module crypt.sha256", slog.String("script", path))
 		sha265mod := L.NewTable()
 
-		L.SetField(sha265mod, "sum", L.NewFunction(func(l *lua.LState) int {
+		L.SetField(sha265mod, "hash", L.NewFunction(func(l *lua.LState) int {
 			data := ConvertLuaTypesToGolang(L.Get(1))
 			var dataStr = fmt.Sprint(data)
 
