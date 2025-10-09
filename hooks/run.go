@@ -29,6 +29,7 @@ import (
 )
 
 var NodeApp = app.New()
+var AllowedCmdPattern = `^[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*$`
 
 func Run(cmd *cobra.Command, args []string) {
 	NodeApp.InitialHooks(
@@ -60,7 +61,7 @@ func RunHook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) error {
 	serverv1 := sv1.InitV1Server(&sv1.HandlerV1InitStruct{
 		X:          x,
 		CS:         cs,
-		AllowedCmd: regexp.MustCompile(`^[a-zA-Z0-9]+(>[a-zA-Z0-9]+)*$`),
+		AllowedCmd: regexp.MustCompile(AllowedCmdPattern),
 		Ver:        "v1",
 	})
 

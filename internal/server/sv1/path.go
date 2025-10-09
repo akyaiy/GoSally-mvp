@@ -9,12 +9,14 @@ import (
 	"github.com/akyaiy/GoSally-mvp/internal/server/rpc"
 )
 
+var RPCMethodSeparator = "."
+
 func (h *HandlerV1) resolveMethodPath(method string) (string, error) {
 	if !h.allowedCmd.MatchString(method) {
 		return "", errors.New(rpc.ErrInvalidMethodFormatS)
 	}
 
-	parts := strings.Split(method, ">")
+	parts := strings.Split(method, RPCMethodSeparator)
 	relPath := filepath.Join(parts...) + ".lua"
 	fullPath := filepath.Join(*h.x.Config.Conf.Node.ComDir, relPath)
 
