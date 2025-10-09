@@ -7,8 +7,6 @@
 local log = require("internal.log")
 local db = require("internal.database.sqlite").connect("db/unit.db", {log = true})
 local session = require("internal.session")
-local crypt = require("internal.crypt.bcrypt")
-local sha256 = require("internal.crypt.sha256")
 
 local common = require("com/Unit/_common")
 
