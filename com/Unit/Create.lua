@@ -36,19 +36,28 @@ end
 local hashPass = crypt.generate(params.password, crypt.DefaultCost)
 local unitID = string.sub(sha256.hash(session.__seed), 1, 16)
 
--- First db query: check if username or email already exists
-local existing, err = db:query("SELECT 1 FROM units WHERE email = ? OR username = ? LIMIT 1", {
+-- First db query: check if username or email already exists among active users
+local existing, err = db:query([[
+  SELECT 1
+  FROM units
+  WHERE (email = ? OR username = ?)
+    AND entry_status != 'deleted'
+    AND deleted_at IS NULL
+  LIMIT 1
+]], {
   params.email,
   params.username
 })
 
 if err ~= nil then
   log.error("Email check failed: "..tostring(err))
-  return session.response.send_error()
+  close_db()
+  session.response.send_error()
 end
 
 if existing and #existing > 0 then
-  return session.response.send_error(-32101, "Unit already exists")
+  close_db()
+  session.response.send_error(-32101, "Unit is already exists")
 end
 
 -- Second db query: insert new unit
@@ -63,15 +72,16 @@ local ctx, err = db:exec(
 )
 if err ~= nil then
   log.error("Insert failed: "..tostring(err))
-  return session.response.send_error()
+  close_db()
+  session.response.send_error("Failed to create unit")
 end
 
 local res, err = ctx:wait()
 if err ~= nil then
   log.error("Insert confirmation failed: "..tostring(err))
-  return session.response.send_error()
+  close_db()
+  session.response.send_error("Failed to create unit")
 end
 
-session.response.send({message = "Unit created successfully", unit_id = unitID})
-
 close_db()
+session.response.send({message = "Unit created successfully", unit_id = unitID})
