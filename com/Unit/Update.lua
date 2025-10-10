@@ -6,6 +6,7 @@
 local log = require("internal.log")
 local db = require("internal.database.sqlite").connect("db/unit.db", { log = true })
 local session = require("internal.session")
+local crypt = require("internal.crypt.bcrypt")
 
 local common = require("com/Unit/_common")
 local errors = require("com/Unit/_errors")
@@ -34,7 +35,7 @@ end
 local allowed = {
   username = true,
   email = true,
-  password = false,
+  password = true,
   entry_status = true
 }
 
@@ -53,6 +54,9 @@ local values = {}
 
 for k, v in pairs(params.fields) do
   if allowed[k] then
+    if k == "password" then
+      v = crypt.generate(v, crypt.DefaultCost)
+    end
     table.insert(set_clauses, k .. " = ?")
     table.insert(values, v)
   else
