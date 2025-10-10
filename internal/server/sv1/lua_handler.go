@@ -186,11 +186,6 @@ func (h *HandlerV1) handleLUA(sid string, r *http.Request, req *rpc.RPCRequest, 
 		L.SetField(scriptDataTable, "result", resTable)
 		L.SetField(outTable, "send", L.NewFunction(func(L *lua.LState) int {
 			res := L.Get(1)
-			if res == lua.LNil {
-				__exit = 0
-				L.RaiseError("__successfull")
-				return 0
-			}
 
 			resFTable := scriptDataTable.RawGetString("result")
 			if resPTable, ok := res.(*lua.LTable); ok {

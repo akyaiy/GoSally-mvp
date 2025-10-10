@@ -37,7 +37,9 @@ func NewError(code int, message string, data any, id *json.RawMessage) *RPCRespo
 	Error = map[string]any{
 		"code":    code,
 		"message": message,
-		"data":    data,
+	}
+	if data != nil {
+		Error["data"] = data
 	}
 
 	return &RPCResponse{
