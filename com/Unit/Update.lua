@@ -101,6 +101,5 @@ close_db()
 
 session.response.send({
   message = "User updated successfully",
-  fields_updated = #set_clauses - 1, -- excluding updated_at
   fields = params.fields
 })

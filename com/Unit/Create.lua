@@ -37,31 +37,6 @@ end
 local hashPass = crypt.generate(params.password, crypt.DefaultCost)
 local unitID = string.sub(sha256.hash(session.__seed), 1, 16)
 
--- First db query: check if username or email already exists among active users
-local existing, err = db:query([[
-  SELECT 1
-  FROM units
-  WHERE (email = ? OR username = ?)
-    AND entry_status != 'deleted'
-    AND deleted_at IS NULL
-  LIMIT 1
-]], {
-  params.email,
-  params.username
-})
-
-if err ~= nil then
-  log.error("Email check failed: "..tostring(err))
-  close_db()
-  session.response.send_error()
-end
-
-if existing and #existing > 0 then
-  close_db()
-  session.response.send_error(errors.UNIT_EXISTS.code, errors.UNIT_EXISTS.message)
-end
-
--- Second db query: insert new unit
 local ctx, err = db:exec(
   "INSERT INTO units (user_id, username, email, password) VALUES (?, ?, ?, ?)",
   {
@@ -71,17 +46,22 @@ local ctx, err = db:exec(
     hashPass,
   }
 )
+
 if err ~= nil then
   log.error("Insert failed: "..tostring(err))
   close_db()
   session.response.send_error(errors.DB_INSERT_FAILED.code, errors.DB_INSERT_FAILED.message)
 end
 
-local res, err = ctx:wait()
+local _, err = ctx:wait()
 if err ~= nil then
-  log.error("Insert confirmation failed: "..tostring(err))
   close_db()
-  session.response.send_error(errors.DB_INSERT_FAILED.code, errors.DB_INSERT_FAILED.message)
+  if tostring(err):match("UNIQUE constraint failed") then
+    session.response.send_error(errors.UNIT_EXISTS.code, errors.UNIT_EXISTS.message)
+  else
+    log.error("Insert confirmation failed: "..tostring(err))
+  session.response.send_error()
+  end
 end
 
 close_db()
