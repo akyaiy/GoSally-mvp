@@ -29,7 +29,7 @@ build:
 	@echo "Building..."
 	@# @echo "CGO_CFLAGS is: '$(CGO_CFLAGS)'"
 	@# @echo "CGO_LDFLAGS is: '$(CGO_LDFLAGS)'"
-	@# CGO_CFLAGS="$(CGO_CFLAGS)" CGO_LDFLAGS="$(CGO_LDFLAGS)" 
+	@# CGO_CFLAGS="$(CGO_CFLAGS)" CGO_LDFLAGS="$(CGO_LDFLAGS)"
 	@go build -trimpath -ldflags "-w -s $(LDFLAGS)" -o $(BIN_DIR)/$(APP_NAME) ./
 # 	@if ! command -v upx >/dev/null 2>&1; then \
 # 		echo "upx not found, skipping compression."; \

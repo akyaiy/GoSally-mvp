@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/akyaiy/GoSally-mvp/internal/core/utils"
+	"github.com/akyaiy/GoSally-mvp/src/internal/core/utils"
 )
 
 type RunManagerContract interface {

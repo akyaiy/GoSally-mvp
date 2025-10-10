@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/akyaiy/GoSally-mvp/internal/core/utils"
-	"github.com/akyaiy/GoSally-mvp/internal/engine/config"
+	"github.com/akyaiy/GoSally-mvp/src/internal/core/utils"
+	"github.com/akyaiy/GoSally-mvp/src/internal/engine/config"
 )
 
 // GetNodeUUID outputs the correct uuid from the file at the path specified in the arguments.

@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/akyaiy/GoSally-mvp/internal/colors"
+	"github.com/akyaiy/GoSally-mvp/src/internal/colors"
 )
 
 func (c *Compositor) Print(v any) {

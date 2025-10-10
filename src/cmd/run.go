@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/akyaiy/GoSally-mvp/hooks"
+	"github.com/akyaiy/GoSally-mvp/src/hooks"
 	"github.com/spf13/cobra"
 )
 

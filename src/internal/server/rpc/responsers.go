@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/akyaiy/GoSally-mvp/internal/core/corestate"
+	"github.com/akyaiy/GoSally-mvp/src/internal/core/corestate"
 	"github.com/google/uuid"
 )
 

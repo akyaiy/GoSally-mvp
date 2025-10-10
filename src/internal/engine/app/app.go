@@ -9,8 +9,8 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/akyaiy/GoSally-mvp/internal/core/corestate"
-	"github.com/akyaiy/GoSally-mvp/internal/engine/config"
+	"github.com/akyaiy/GoSally-mvp/src/internal/core/corestate"
+	"github.com/akyaiy/GoSally-mvp/src/internal/engine/config"
 )
 
 type AppContract interface {

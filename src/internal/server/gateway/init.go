@@ -3,9 +3,9 @@ package gateway
 import (
 	"errors"
 
-	"github.com/akyaiy/GoSally-mvp/internal/core/corestate"
-	"github.com/akyaiy/GoSally-mvp/internal/engine/app"
-	"github.com/akyaiy/GoSally-mvp/internal/server/session"
+	"github.com/akyaiy/GoSally-mvp/src/internal/core/corestate"
+	"github.com/akyaiy/GoSally-mvp/src/internal/engine/app"
+	"github.com/akyaiy/GoSally-mvp/src/internal/server/session"
 )
 
 // GeneralServerInit structure only for initialization general server.

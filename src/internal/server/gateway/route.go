@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/akyaiy/GoSally-mvp/internal/core/utils"
-	"github.com/akyaiy/GoSally-mvp/internal/server/rpc"
+	"github.com/akyaiy/GoSally-mvp/src/internal/core/utils"
+	"github.com/akyaiy/GoSally-mvp/src/internal/server/rpc"
 	"github.com/google/uuid"
 )
 

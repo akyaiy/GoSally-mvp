@@ -3,9 +3,9 @@ package lua
 import (
 	"net/http"
 
-	"github.com/akyaiy/GoSally-mvp/internal/core/corestate"
-	"github.com/akyaiy/GoSally-mvp/internal/engine/app"
-	"github.com/akyaiy/GoSally-mvp/internal/server/rpc"
+	"github.com/akyaiy/GoSally-mvp/src/internal/core/corestate"
+	"github.com/akyaiy/GoSally-mvp/src/internal/engine/app"
+	"github.com/akyaiy/GoSally-mvp/src/internal/server/rpc"
 )
 
 type LuaEngineDeps struct {

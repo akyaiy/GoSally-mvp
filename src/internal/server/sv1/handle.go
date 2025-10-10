@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/akyaiy/GoSally-mvp/internal/server/rpc"
+	"github.com/akyaiy/GoSally-mvp/src/internal/server/rpc"
 )
 
 func (h *HandlerV1) Handle(_ context.Context, sid string, r *http.Request, req *rpc.RPCRequest) *rpc.RPCResponse {

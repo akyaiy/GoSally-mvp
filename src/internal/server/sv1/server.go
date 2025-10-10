@@ -5,8 +5,8 @@ package sv1
 import (
 	"regexp"
 
-	"github.com/akyaiy/GoSally-mvp/internal/core/corestate"
-	"github.com/akyaiy/GoSally-mvp/internal/engine/app"
+	"github.com/akyaiy/GoSally-mvp/src/internal/core/corestate"
+	"github.com/akyaiy/GoSally-mvp/src/internal/engine/app"
 )
 
 // HandlerV1InitStruct structure is only for initialization

@@ -1,4 +1,4 @@
-module github.com/akyaiy/GoSally-mvp
+module github.com/akyaiy/GoSally-mvp/src
 
 go 1.24.4
 

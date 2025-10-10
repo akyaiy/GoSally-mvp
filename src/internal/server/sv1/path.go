@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/akyaiy/GoSally-mvp/internal/server/rpc"
+	"github.com/akyaiy/GoSally-mvp/src/internal/server/rpc"
 )
 
 var RPCMethodSeparator = "."

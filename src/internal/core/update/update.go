@@ -13,10 +13,10 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/akyaiy/GoSally-mvp/internal/core/run_manager"
-	"github.com/akyaiy/GoSally-mvp/internal/core/utils"
-	"github.com/akyaiy/GoSally-mvp/internal/engine/app"
-	"github.com/akyaiy/GoSally-mvp/internal/engine/config"
+	"github.com/akyaiy/GoSally-mvp/src/internal/core/run_manager"
+	"github.com/akyaiy/GoSally-mvp/src/internal/core/utils"
+	"github.com/akyaiy/GoSally-mvp/src/internal/engine/app"
+	"github.com/akyaiy/GoSally-mvp/src/internal/engine/config"
 	"golang.org/x/net/context"
 )
 

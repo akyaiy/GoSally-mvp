@@ -7,9 +7,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/akyaiy/GoSally-mvp/hooks"
-	"github.com/akyaiy/GoSally-mvp/internal/colors"
-	"github.com/akyaiy/GoSally-mvp/internal/core/corestate"
+	"github.com/akyaiy/GoSally-mvp/src/hooks"
+	"github.com/akyaiy/GoSally-mvp/src/internal/colors"
+	"github.com/akyaiy/GoSally-mvp/src/internal/core/corestate"
 	"github.com/spf13/cobra"
 )
 

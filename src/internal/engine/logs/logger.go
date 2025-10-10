@@ -11,7 +11,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/akyaiy/GoSally-mvp/internal/engine/config"
+	"github.com/akyaiy/GoSally-mvp/src/internal/engine/config"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 

@@ -17,8 +17,8 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/akyaiy/GoSally-mvp/internal/colors"
-	"github.com/akyaiy/GoSally-mvp/internal/server/rpc"
+	"github.com/akyaiy/GoSally-mvp/src/internal/colors"
+	"github.com/akyaiy/GoSally-mvp/src/internal/server/rpc"
 	lua "github.com/yuin/gopher-lua"
 	_ "modernc.org/sqlite"
 )
