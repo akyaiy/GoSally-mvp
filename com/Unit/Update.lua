@@ -99,7 +99,4 @@ end
 
 close_db()
 
-session.response.send({
-  message = "User updated successfully",
-  fields = params.fields
-})
+session.response.send()

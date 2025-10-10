@@ -74,4 +74,4 @@ if err ~= nil then
 end
 
 close_db()
-session.response.send({message = "Unit deleted successfully", unit_id = params.user_id})
+session.response.send()

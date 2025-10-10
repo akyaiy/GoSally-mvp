@@ -65,4 +65,4 @@ if err ~= nil then
 end
 
 close_db()
-session.response.send({message = "Unit created successfully", unit_id = unitID})
+session.response.send({unit_id = unitID})
