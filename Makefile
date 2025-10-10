@@ -31,13 +31,13 @@ build:
 	@# @echo "CGO_LDFLAGS is: '$(CGO_LDFLAGS)'"
 	@# CGO_CFLAGS="$(CGO_CFLAGS)" CGO_LDFLAGS="$(CGO_LDFLAGS)" 
 	@go build -trimpath -ldflags "-w -s $(LDFLAGS)" -o $(BIN_DIR)/$(APP_NAME) ./
-	@if ! command -v upx >/dev/null 2>&1; then \
-		echo "upx not found, skipping compression."; \
-	elif upx -t $(BIN_DIR)/$(APP_NAME) >/dev/null 2>&1; then \
-		echo "$(BIN_DIR)/$(APP_NAME) already compressed, skipping."; \
-	else \
-		upx $(BIN_DIR)/$(APP_NAME) >/dev/null 2>&1 || true; \
-	fi
+# 	@if ! command -v upx >/dev/null 2>&1; then \
+# 		echo "upx not found, skipping compression."; \
+# 	elif upx -t $(BIN_DIR)/$(APP_NAME) >/dev/null 2>&1; then \
+# 		echo "$(BIN_DIR)/$(APP_NAME) already compressed, skipping."; \
+# 	else \
+# 		upx $(BIN_DIR)/$(APP_NAME) >/dev/null 2>&1 || true; \
+# 	fi
 
 run: build
 	@echo "Running!"
