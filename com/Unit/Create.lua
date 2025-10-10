@@ -15,6 +15,7 @@ local crypt = require("internal.crypt.bcrypt")
 local sha256 = require("internal.crypt.sha256")
 
 local common = require("com/Unit/_common")
+local errors = require("com/Unit/_errors")
 
 -- Preparing for first db query
 local function close_db()
@@ -30,7 +31,7 @@ local params = session.request.params.get()
 local ok, mp = common.CheckMissingElement({"username", "password", "email"}, params)
 if not ok then
   close_db()
-  session.response.send_error(-32602, "Missing params", mp)
+  session.response.send_error(errors.MISSING_PARAMS.code, errors.MISSING_PARAMS.message, mp)
 end
 
 local hashPass = crypt.generate(params.password, crypt.DefaultCost)
@@ -57,7 +58,7 @@ end
 
 if existing and #existing > 0 then
   close_db()
-  session.response.send_error(-32101, "Unit is already exists")
+  session.response.send_error(errors.UNIT_EXISTS.code, errors.UNIT_EXISTS.message)
 end
 
 -- Second db query: insert new unit
@@ -73,14 +74,14 @@ local ctx, err = db:exec(
 if err ~= nil then
   log.error("Insert failed: "..tostring(err))
   close_db()
-  session.response.send_error("Failed to create unit")
+  session.response.send_error(errors.DB_INSERT_FAILED.code, errors.DB_INSERT_FAILED.message)
 end
 
 local res, err = ctx:wait()
 if err ~= nil then
   log.error("Insert confirmation failed: "..tostring(err))
   close_db()
-  session.response.send_error("Failed to create unit")
+  session.response.send_error(errors.DB_INSERT_FAILED.code, errors.DB_INSERT_FAILED.message)
 end
 
 close_db()

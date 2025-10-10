@@ -9,6 +9,7 @@ local db = require("internal.database.sqlite").connect("db/unit.db", {log = true
 local session = require("internal.session")
 
 local common = require("com/Unit/_common")
+local errors = require("com/Unit/_errors")
 
 -- Preparing for first db query
 local function close_db()
@@ -24,7 +25,7 @@ local params = session.request.params.get()
 local ok, mp = common.CheckMissingElement({"user_id"}, params)
 if not ok then
   close_db()
-  session.response.send_error(-32602, "Missing params", mp)
+  session.response.send_error(errors.MISSING_PARAMS.code, errors.MISSING_PARAMS.message, mp)
 end
 
 local existing, err = db:query([[
@@ -46,7 +47,7 @@ end
 
 if existing and #existing == 0 then
   close_db()
-  session.response.send_error(-32102, "Unit is not exists")
+  session.response.send_error(errors.UNIT_NOT_FOUND.code, errors.UNIT_NOT_FOUND.message)
 end
 
 local ctx, err = db:exec(
@@ -62,14 +63,14 @@ local ctx, err = db:exec(
 if err ~= nil then
   log.error("Soft delete failed: " .. tostring(err))
   close_db()
-  session.response.send_error("Failed to delete unit")
+  session.response.send_error(errors.DB_DELETE_FAILED.code, errors.DB_DELETE_FAILED.message)
 end
 
 local res, err = ctx:wait()
 if err ~= nil then
   log.error("Soft delete confirmation failed: " .. tostring(err))
   close_db()
-  session.response.send_error("Failed to delete unit")
+  session.response.send_error(errors.DB_DELETE_FAILED.code, errors.DB_DELETE_FAILED.message)
 end
 
 close_db()
