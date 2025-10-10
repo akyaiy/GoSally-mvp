@@ -13,5 +13,5 @@ Taskfile.yml
 config.yaml
 
 # Garbage
-com/_Access/GetMasterAccess.lua
-com/_Zones/GetZoneInfo.lua
+com/_*
+com/test.lua
