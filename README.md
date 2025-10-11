@@ -1,5 +1,8 @@
 # Go Sally MVP (Minimum/Minimal Viable Product)
 
+> [!NOTE]
+> If you see "💡" in the text, it means the information below is about plans for the future of the project.
+
 ### Features
 - **Decentralized nodes**<details>this means that *multiple GS[^1] nodes can be located on a single machine*, provided no attempt is made to disrupt, sabotage, or bypass the built-in protection mechanism against running a node under the same identifier as one already running in the system. Identification plays a role in node communication. 💡 In the future, we plan to create tools for conveniently building distributed systems using node identification.</details>
 - **RPC request processing**<details>the GS operates *using HTTP/https and the JSONRPC2.0 protocol.* Unlike gRPC, jsonrpc is extremely simple, allows for easy sending of requests from the browser, and does not require any additional code compilation.</details>
