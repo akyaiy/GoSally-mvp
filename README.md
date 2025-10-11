@@ -17,6 +17,9 @@
 you can configure the server port, address, name, node settings, and more. 💡 More settings are planned in the future.</details>
 - ***And more in the future***
 
+> [!IMPORTANT]
+> This is the beginning of the project's development, and some aspects of it may be unstable, unfinished, and the text about it may be overly ambitious. It's just a matter of time.
+
 ## Why?
 The project was originally conceived as a tool for building infrastructure using relatively *small nodes with limited functionality*. 💡 In the future, we plan to create a *web interface for interacting with nodes, administration, and configuration*. The concept is simple: suppose we have a node that manages Bind9. It has all the necessary methods for interacting with the service: creating new zones, viewing zone status, changing configuration, and server operation status. All of this works only through manual configuration, with the exception of larger solutions like Webmin and the BIND DNS Server module. The big problem is that while we only needed web configuration for Bind9, we have to pull in a massive amount of software just to implement one module. What if the service is hosted on a low-power Raspberry Pi? That's where GS nodes come in. By default, GS nodes communicate only through API calls, so 💡 in the future, we plan to create a dedicated, also programmable, web node that will provide convenient access to node management.
 
