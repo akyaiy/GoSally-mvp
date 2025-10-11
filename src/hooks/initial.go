@@ -234,7 +234,11 @@ func InitConfigPrintHook(ctx context.Context, cs *corestate.CoreState, x *app.Ap
 		}
 	}
 
-	x.Log.Printf("Starting \"%s\" node", *x.Config.Conf.Node.Name)
+	if *x.Config.Conf.Node.Name == "noname" {
+		x.Log.Printf("Starting node")
+	} else {
+		x.Log.Printf("Starting \"%s\" node", *x.Config.Conf.Node.Name)
+	}
 }
 
 func InitSLogHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
