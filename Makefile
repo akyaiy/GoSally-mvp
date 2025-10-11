@@ -4,7 +4,10 @@ GOPATH := $(shell go env GOPATH)
 export CONFIG_PATH := ./config.yaml
 export NODE_PATH := $(shell pwd)
 
-LDFLAGS := -X 'github.com/akyaiy/GoSally-mvp/internal/engine/config.NodeVersion=v0.0.1-dev'
+NODE_VERSION := v0.0.1-dev
+SV1_VERSION := v0.0.1-dev
+
+LDFLAGS := -X 'github.com/akyaiy/GoSally-mvp/src/internal/engine/config.NodeVersion=$(NODE_VERSION)' -X 'github.com/akyaiy/GoSally-mvp/src/internal/server/sv1.SV1Version=$(SV1_VERSION)'
 CGO_CFLAGS := -I/usr/local/include
 CGO_LDFLAGS := -L/usr/local/lib -llua5.1 -lm -ldl
 .PHONY: all build run runq test fmt vet lint check clean
@@ -30,7 +33,7 @@ build:
 	@# @echo "CGO_CFLAGS is: '$(CGO_CFLAGS)'"
 	@# @echo "CGO_LDFLAGS is: '$(CGO_LDFLAGS)'"
 	@# CGO_CFLAGS="$(CGO_CFLAGS)" CGO_LDFLAGS="$(CGO_LDFLAGS)"
-	@cd src && go build -trimpath -ldflags "-w -s $(LDFLAGS)" -o ../$(BIN_DIR)/$(APP_NAME) ./
+	cd src && go build -trimpath -ldflags "-w -s $(LDFLAGS)" -o ../$(BIN_DIR)/$(APP_NAME) ./
 # 	@if ! command -v upx >/dev/null 2>&1; then \
 # 		echo "upx not found, skipping compression."; \
 # 	elif upx -t $(BIN_DIR)/$(APP_NAME) >/dev/null 2>&1; then \
