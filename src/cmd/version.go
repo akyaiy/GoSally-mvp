@@ -14,7 +14,7 @@ var verCmd = &cobra.Command{
 	Aliases: []string{"ver", "v"},
 	Short:   "Return node version",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("GoSally node: %s\n", config.NodeVersion)
+		fmt.Printf("Go Sally version: %s\n", config.NodeVersion)
 		fmt.Printf("sv1 version: %s\n", sv1.SV1Version)
 		fmt.Printf("Go version: %s\n", runtime.Version())
 		fmt.Printf("Go OS/Arch: %s/%s\n", runtime.GOOS, runtime.GOARCH)
