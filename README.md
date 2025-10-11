@@ -51,7 +51,9 @@ This is a typical example of a request using the jsonrpc2.0 protocol.
 }
 ```
 In the result field, we see the echo method's response. Those familiar with the jsonrpc2.0 specification will notice that the data structure here is unclear. This is my extension, which has three functions:
-- ID of the node that executed the task
-- Salt - a random value for each request. Can be used to check that the response is unique
-- checksum-md5 - the hash of the result field, on the contrary, can be used to avoid processing identical results separately
+| Field | Type | Description |
+|--------|------|-------------|
+| `responsible-node` | string | ID of the node that executed the task |
+| `salt` | string | Random value for each request — can be used to check that the response is unique |
+| `checksum-md5` | string | MD5 hash of the result field — can be used to avoid processing identical results separately |
 
