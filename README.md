@@ -1,8 +1,8 @@
 # Go Sally MVP (Minimum/Minimal Viable Product)
 
 ### Features
-- **Decentralized nodes**<details>this means that *multiple GS nodes can be located on a single machine*, provided no attempt is made to disrupt, sabotage, or bypass the built-in protection mechanism against running a node under the same identifier as one already running in the system. Identification plays a role in node communication. 💡 In the future, we plan to create tools for conveniently building distributed systems using node identification.</details>
-- **RPC request processing**<details>the gs operates *using HTTP/https and the JSONRPC2.0 protocol.* Unlike gRPC, jsonrpc is extremely simple, allows for easy sending of requests from the browser, and does not require any additional code compilation.</details>
+- **Decentralized nodes**<details>this means that *multiple GS[^1] nodes can be located on a single machine*, provided no attempt is made to disrupt, sabotage, or bypass the built-in protection mechanism against running a node under the same identifier as one already running in the system. Identification plays a role in node communication. 💡 In the future, we plan to create tools for conveniently building distributed systems using node identification.</details>
+- **RPC request processing**<details>the GS operates *using HTTP/https and the JSONRPC2.0 protocol.* Unlike gRPC, jsonrpc is extremely simple, allows for easy sending of requests from the browser, and does not require any additional code compilation.</details>
 - **Lua script-based methods**<details>*The gopher-lua library is used, providing full support for Lua 5.1.* scripts implement libraries for interacting with sessions (receiving parameters and sending responses), hashing, logging, and more. This allows you to quickly write business logic on the fly without touching the lower layers of abstraction, which also eliminates unnecessary compilation and the risk of breaking the codebase.
   Example of the "echo" method:
   ```lua
@@ -57,3 +57,4 @@ In the result field, we see the echo method's response. Those familiar with the 
 | `salt` | string | Random value for each request — can be used to check that the response is unique |
 | `checksum-md5` | string | MD5 hash of the result field — can be used to avoid processing identical results separately |
 
+[^1]: Go Sally
