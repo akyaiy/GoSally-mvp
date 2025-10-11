@@ -61,6 +61,7 @@ func (c *Compositor) LoadConf(path string) error {
 	v.SetDefault("log.json_format", "false")
 	v.SetDefault("log.level", "info")
 	v.SetDefault("log.output", "%2%")
+	v.SetDefault("disable_warnings", []string{})
 
 	if err := v.ReadInConfig(); err != nil {
 		return fmt.Errorf("error reading config: %w", err)
