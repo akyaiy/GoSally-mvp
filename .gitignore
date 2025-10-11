@@ -12,6 +12,8 @@ com/_config.lua
 Taskfile.yml
 config.yaml
 
+wiki
+
 # Garbage
 com/_*
 com/test.lua
