@@ -9,6 +9,8 @@ import (
 	"github.com/akyaiy/GoSally-mvp/src/internal/engine/app"
 )
 
+var SV1Version = "null"
+
 // HandlerV1InitStruct structure is only for initialization
 type HandlerV1InitStruct struct {
 	Ver        string
