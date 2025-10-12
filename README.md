@@ -63,4 +63,7 @@ In the result field, we see the echo method's response. Those familiar with the 
 | `salt` | string | Random value for each request — can be used to check that the response is unique |
 | `checksum-md5` | string | MD5 hash of the result field — can be used to avoid processing identical results separately |
 
+## License
+Distributed under the BSD 3-Clause License. See [`LICENSE`](./LICENSE) for more information.
+
 [^1]: Go Sally
