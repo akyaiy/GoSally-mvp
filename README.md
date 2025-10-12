@@ -4,12 +4,21 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/akyaiy/GoSally-mvp.svg)](https://pkg.go.dev/github.com/akyaiy/GoSally-mvp)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-blue)](LICENSE)
 
+> ⚡ **What, Why, Why Care?**
+
+> **What:** Go Sally is a lightweight decentralized node system with Lua scripting and JSON-RPC2.0.
+
+> **Why:** Large admin tools are too heavy, and Raspberry Pi and small servers require a lightweight, modular architecture.
+
+> **Why Care:** Create, automate, and expand your infrastructure quickly, without unnecessary software or dependencies. 
+
 > [!NOTE]
 > If you see "💡" in the text, it means the information below is about plans for the future of the project.
 
 ## Core features
-- **Decentralized nodes**<details>this means that *multiple GS[^1] nodes can be located on a single machine*, provided no attempt is made to disrupt, sabotage, or bypass the built-in protection mechanism against running a node under the same identifier as one already running in the system. Identification plays a role in node communication. 💡 In the future, we plan to create tools for conveniently building distributed systems using node identification.</details>
-- **RPC request processing**<details>the GS operates *using HTTP/https and the JSONRPC2.0 protocol.* Unlike gRPC, jsonrpc is extremely simple, allows for easy sending of requests from the browser, and does not require any additional code compilation.</details>
+- **Decentralized nodes**<details>this means that *multiple GS[^1] nodes can be located on a single machine*, provided no attempt is made to disrupt, sabotage, or bypass the built-in protection mechanism against running a node under the same identifier as one already running in the system. Identification plays a role in node communication. 💡 In the future, we plan to create tools for conveniently building distributed systems using node identification.
+**Why Care?** Multiple nodes on one machine allow testing, experimentation, and scaling small infrastructures without extra hardware or complex setup.</details>
+- **RPC request processing**<details>the GS operates *using HTTP/https and the JSONRPC2.0 protocol.* Unlike gRPC, jsonrpc is extremely simple, allows for easy sending of requests from the browser, and does not require any additional code compilation. **Why Care?** Easy-to-use API means you can control nodes from anywhere, including lightweight web clients, without compiling extra code.</details>
 - **Lua script-based methods**<details>*The gopher-lua library is used, providing full support for Lua 5.1.* scripts implement libraries for interacting with sessions (receiving parameters and sending responses), hashing, logging, and more. This allows you to quickly write business logic on the fly without touching the lower layers of abstraction, which also eliminates unnecessary compilation and the risk of breaking the codebase.
   Example of the "echo" method:
   ```lua
@@ -19,9 +28,10 @@
   session.response.send(session.request.params.get())
   -- send everything passed in the parameters in response.
   ```
+  **Why Care?** You can extend node behavior dynamically, write custom logic fast, and iterate without recompiling — perfect for experiments or automation.
   </details>
 - **Relatively flexible configuration** <details>
-you can configure the server port, address, name, node settings, and more. 💡 More settings are planned in the future.</details>
+you can configure the server port, address, name, node settings, and more. 💡 More settings are planned in the future. **Why Care?** Configure nodes for any environment, from Raspberry Pi to VPS, without touching the source code. obviously :)</details>
 - ***And more in the future***
 
 > [!IMPORTANT]
@@ -59,8 +69,8 @@ Expected response:
     "checksum-md5": "cd8bec6a365d1b8ee90773567cb3ad0a"
   }
 }
-
 ```
+
 ## Concept
 The project was originally conceived as a tool for building infrastructure using relatively *small nodes with limited functionality*. 💡 In the future, we plan to create a *web interface for interacting with nodes, administration, and configuration*. The concept is simple: suppose we have a node that manages Bind9. It has all the necessary methods for interacting with the service: creating new zones, viewing zone status, changing configuration, and server operation status. All of this works only through manual configuration, with the exception of larger solutions like Webmin and the BIND DNS Server module. The big problem is that while we only needed web configuration for Bind9, we have to pull in a massive amount of software just to implement one module. What if the service is hosted on a low-power Raspberry Pi? That's where GS nodes come in. By default, GS nodes communicate only through API calls, so 💡 in the future, we plan to create a dedicated, also programmable, web node that will provide convenient access to node management.
 
