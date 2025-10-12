@@ -1,4 +1,8 @@
 # Go Sally MVP (Minimum/Minimal Viable Product)
+[![Status](https://img.shields.io/badge/status-MVP-orange.svg)]()
+[![Go Version](https://img.shields.io/badge/Go-1.24.6-informational)](https://go.dev/)
+[![Go Reference](https://pkg.go.dev/badge/github.com/akyaiy/GoSally-mvp.svg)](https://pkg.go.dev/github.com/akyaiy/GoSally-mvp)
+[![License](https://img.shields.io/badge/license-BSD--3--Clause-blue)](LICENSE)
 
 > [!NOTE]
 > If you see "💡" in the text, it means the information below is about plans for the future of the project.
