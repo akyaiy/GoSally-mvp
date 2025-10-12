@@ -12,6 +12,15 @@
 
 > **Why Care:** Create, automate, and expand your infrastructure quickly, without unnecessary software or dependencies. 
 
+## Navigation
+* [Core features](#core-features)
+* [Quick start](#quick-start)
+  * [Test it](#test-it)
+* [Concept](#concept)
+* [API](#api)
+* [License](#license)
+* [Wiki →](https://github.com/akyaiy/GoSally-mvp/wiki)
+
 > [!NOTE]
 > If you see "💡" in the text, it means the information below is about plans for the future of the project.
 
