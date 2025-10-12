@@ -5,6 +5,11 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/akyaiy/GoSally-mvp.svg)](https://pkg.go.dev/github.com/akyaiy/GoSally-mvp)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-blue)](LICENSE)
 
+[![Last Commit](https://img.shields.io/github/last-commit/akyaiy/GoSally-mvp)]()
+[![Commits per month](https://img.shields.io/github/commit-activity/m/akyaiy/GoSally-mvp)]()
+[![Docs](https://img.shields.io/badge/docs-wiki-blue)](https://github.com/akyaiy/GoSally-mvp/wiki)
+
+
 > ⚡ **What, Why, Why Care?**
 
 > **What:** Go Sally is a lightweight decentralized node system with Lua scripting and JSON-RPC2.0.
