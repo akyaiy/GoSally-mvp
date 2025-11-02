@@ -55,30 +55,22 @@ pure-run:
 	exec ./$(BIN_DIR)/$(APP_NAME)
 
 test:
-	@go test ./... | grep -v '^?' || true
+	@cd src && go test ./... | grep -v '^?' || true
 
 fmt:
-	@go fmt ./internal/./...
-	@go fmt ./cmd/./...
-	@go fmt ./hooks/./...
-	@$(GOPATH)/bin/goimports -w ./internal/
-	@$(GOPATH)/bin/goimports -w ./cmd/
-	@$(GOPATH)/bin/goimports -w ./hooks/
+	@cd src && go fmt .
+	@cd src && $(GOPATH)/bin/goimports -w .
 
 vet:
-	@go vet ./...
-
-lint:
-	@$(GOPATH)/bin/golangci-lint run
-
+	@cd src && go vet ./...
 check: fmt vet lint test
-
-licenses:
+lint:
+	@cd src && $(GOPATH)/bin/golangci-lint run ./...
 	@$(GOPATH)/bin/go-licenses save ./... --save_path=third_party/licenses --force
 	@echo "Licenses have been exported to third_party/licenses"
 
-clean:
-	@rm -rf bin
-
+licenses:
+	@cd src && $(GOPATH)/bin/go-licenses save ./... --save_path=../third_party/licenses --force
+	@echo "Licenses have been exported to third_party/licenses"
 help:
 	@echo "Available commands: $$(cat Makefile | grep -E '^[a-zA-Z_-]+:.*?' | grep -v -- '-setup:' | sed 's/:.*//g' | sort | uniq | tr '\n' ' ')"
