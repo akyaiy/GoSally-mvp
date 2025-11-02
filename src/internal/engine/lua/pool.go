@@ -15,7 +15,7 @@ func NewLuaPool() *LuaPool {
 		pool: sync.Pool{
 			New: func() any {
 				L := lua.NewState()
-				
+
 				return L
 			},
 		},
@@ -30,6 +30,6 @@ func (lp *LuaPool) Put(L *lua.LState) {
 	L.Close()
 
 	newL := lua.NewState()
-	
+
 	lp.pool.Put(newL)
 }

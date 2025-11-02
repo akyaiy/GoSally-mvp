@@ -85,7 +85,7 @@ func InitUUIDHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	corestate.NODE_UUID = uuid32
 }
 
-// The hook is responsible for checking the initialization stage 
+// The hook is responsible for checking the initialization stage
 // and restarting in some cases
 func InitRuntimeHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	if *x.Config.Env.ParentStagePID != os.Getpid() {
@@ -138,7 +138,7 @@ func InitRuntimeHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 }
 
 // post-init stage
-// The hook creates a run.lock file, which contains information 
+// The hook creates a run.lock file, which contains information
 // about the process and the node, in the runtime directory.
 func InitRunlockHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	NodeApp.Fallback(func(ctx context.Context, cs *corestate.CoreState, x *app.AppX) {
@@ -192,7 +192,7 @@ func InitRunlockHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	}
 }
 
-// The hook reads the configuration and replaces special expressions 
+// The hook reads the configuration and replaces special expressions
 // (%tmp% and so on) in string fields with the required data.
 func InitConfigReplHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	if !slices.Contains(*x.Config.Conf.DisableWarnings, "--WNonStdTmpDir") && os.TempDir() != "/tmp" {
@@ -218,7 +218,7 @@ func InitConfigReplHook(_ context.Context, cs *corestate.CoreState, x *app.AppX)
 	}
 }
 
-// The hook is responsible for outputting the 
+// The hook is responsible for outputting the
 // final config and asking for confirmation.
 func InitConfigPrintHook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) {
 	if *x.Config.Conf.Node.ShowConfig {
@@ -254,7 +254,7 @@ func InitSLogHook(_ context.Context, cs *corestate.CoreState, x *app.AppX) {
 	*x.SLog = *newSlog
 }
 
-// The method goes through the entire config structure through 
+// The method goes through the entire config structure through
 // reflection and replaces string fields with the required ones.
 func processConfig(conf any, replacements map[string]any) error {
 	val := reflect.ValueOf(conf)

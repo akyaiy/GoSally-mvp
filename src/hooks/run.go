@@ -11,8 +11,8 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/akyaiy/GoSally-mvp/src/internal/core/corestate"
 	"github.com/akyaiy/GoSally-mvp/src/internal/colors"
+	"github.com/akyaiy/GoSally-mvp/src/internal/core/corestate"
 	"github.com/akyaiy/GoSally-mvp/src/internal/core/run_manager"
 	"github.com/akyaiy/GoSally-mvp/src/internal/core/update"
 	"github.com/akyaiy/GoSally-mvp/src/internal/core/utils"
@@ -22,6 +22,7 @@ import (
 	"github.com/akyaiy/GoSally-mvp/src/internal/server/gateway"
 	"github.com/akyaiy/GoSally-mvp/src/internal/server/session"
 	"github.com/akyaiy/GoSally-mvp/src/internal/server/sv1"
+	"github.com/akyaiy/GoSally-mvp/src/internal/server/sv2"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
 	"github.com/spf13/cobra"
@@ -65,13 +66,20 @@ func RunHook(ctx context.Context, cs *corestate.CoreState, x *app.AppX) error {
 		Ver:        "v1",
 	})
 
+	sv2 := sv2.InitServer(&sv2.HandlerInitStruct{
+		X:          x,
+		CS:         cs,
+		AllowedCmd: regexp.MustCompile(AllowedCmdPattern),
+		Ver:        "v2",
+	})
+
 	session_manager := session.New(*x.Config.Conf.HTTPServer.SessionTTL)
 
 	s := gateway.InitGateway(&gateway.GatewayServerInit{
 		SM: session_manager,
 		CS: cs,
 		X:  x,
-	}, serverv1)
+	}, serverv1, sv2)
 
 	r := chi.NewRouter()
 	r.Use(cors.Handler(cors.Options{

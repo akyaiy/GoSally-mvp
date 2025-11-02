@@ -11,13 +11,12 @@ import (
 type LuaEngineDeps struct {
 	HttpRequest    *http.Request
 	JSONRPCRequest *rpc.RPCRequest
-	SessionUUID string
-	ScriptPath string
+	SessionUUID    string
+	ScriptPath     string
 }
 
 type LuaEngineContract interface {
 	Handle(deps *LuaEngineDeps) *rpc.RPCResponse
-	
 }
 
 type LuaEngine struct {

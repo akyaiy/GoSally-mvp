@@ -1,4 +1,4 @@
-// The cmd package is the main package where all the main hooks and methods are called. 
+// The cmd package is the main package where all the main hooks and methods are called.
 // GoSally uses spf13/cobra to organize all the calls.
 package cmd
 
@@ -24,7 +24,7 @@ scripts in a given directory. For more information, visit: https://gosally.oblat
 	},
 }
 
-// Execute prepares global log, loads cmdline args 
+// Execute prepares global log, loads cmdline args
 // and executes rootCmd.Execute()
 func Execute() {
 	log.SetOutput(os.Stdout)

@@ -80,10 +80,10 @@ func loadDBMod(llog *slog.Logger, sid string) func(*lua.LState) int {
 
 		mt := L.NewTypeMetatable("gosally_db")
 		L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), map[string]lua.LGFunction{
-			"exec":  dbExec,
-			"query": dbQuery,
+			"exec":      dbExec,
+			"query":     dbQuery,
 			"query_row": dbQueryRow,
-			"close": dbClose,
+			"close":     dbClose,
 		}))
 
 		L.SetField(dbMod, "__seed", lua.LString(sid))
@@ -215,43 +215,43 @@ func dbExec(L *lua.LState) int {
 }
 
 func dbQueryRow(L *lua.LState) int {
-    ud := L.CheckUserData(1)
-    conn, ok := ud.Value.(*DBConnection)
-    if !ok {
-        L.Push(lua.LNil)
-        L.Push(lua.LString("invalid database connection"))
-        return 2
-    }
+	ud := L.CheckUserData(1)
+	conn, ok := ud.Value.(*DBConnection)
+	if !ok {
+		L.Push(lua.LNil)
+		L.Push(lua.LString("invalid database connection"))
+		return 2
+	}
 
-    query := L.CheckString(2)
+	query := L.CheckString(2)
 
-    var args []any
-    if L.GetTop() >= 3 {
-        params := L.CheckTable(3)
-        params.ForEach(func(k lua.LValue, v lua.LValue) {
-            args = append(args, ConvertLuaTypesToGolang(v))
-        })
-    }
+	var args []any
+	if L.GetTop() >= 3 {
+		params := L.CheckTable(3)
+		params.ForEach(func(k lua.LValue, v lua.LValue) {
+			args = append(args, ConvertLuaTypesToGolang(v))
+		})
+	}
 
-    if conn.log {
-        conn.logger.Info("DB QueryRow",
-            slog.String("query", query),
-            slog.Any("params", args))
-    }
+	if conn.log {
+		conn.logger.Info("DB QueryRow",
+			slog.String("query", query),
+			slog.Any("params", args))
+	}
 
-    mtx := getDBMutex(conn.dbPath)
-    mtx.RLock()
-    defer mtx.RUnlock()
+	mtx := getDBMutex(conn.dbPath)
+	mtx.RLock()
+	defer mtx.RUnlock()
 
-    db, err := sql.Open("sqlite", conn.dbPath+"?_busy_timeout=5000&_journal_mode=WAL&_sync=NORMAL&_cache_size=-10000")
-    if err != nil {
-        L.Push(lua.LNil)
-        L.Push(lua.LString(err.Error()))
-        return 2
-    }
-    defer db.Close()
+	db, err := sql.Open("sqlite", conn.dbPath+"?_busy_timeout=5000&_journal_mode=WAL&_sync=NORMAL&_cache_size=-10000")
+	if err != nil {
+		L.Push(lua.LNil)
+		L.Push(lua.LString(err.Error()))
+		return 2
+	}
+	defer db.Close()
 
-    row := db.QueryRow(query, args...)
+	row := db.QueryRow(query, args...)
 
 	columns := []string{}
 	stmt, err := db.Prepare(query)
@@ -278,36 +278,36 @@ func dbQueryRow(L *lua.LState) int {
 		columns = append(columns, c)
 	}
 
-    colCount := len(columns)
-    values := make([]any, colCount)
-    valuePtrs := make([]any, colCount)
-    for i := range columns {
-        valuePtrs[i] = &values[i]
-    }
+	colCount := len(columns)
+	values := make([]any, colCount)
+	valuePtrs := make([]any, colCount)
+	for i := range columns {
+		valuePtrs[i] = &values[i]
+	}
 
-    err = row.Scan(valuePtrs...)
-    if err != nil {
-        if err == sql.ErrNoRows {
-            L.Push(lua.LNil)
-            return 1
-        }
-        L.Push(lua.LNil)
-        L.Push(lua.LString(fmt.Sprintf("scan failed: %v", err)))
-        return 2
-    }
+	err = row.Scan(valuePtrs...)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			L.Push(lua.LNil)
+			return 1
+		}
+		L.Push(lua.LNil)
+		L.Push(lua.LString(fmt.Sprintf("scan failed: %v", err)))
+		return 2
+	}
 
-    rowTable := L.NewTable()
-    for i, col := range columns {
-        val := values[i]
-        if val == nil {
-            L.SetField(rowTable, col, lua.LNil)
-        } else {
-            L.SetField(rowTable, col, ConvertGolangTypesToLua(L, val))
-        }
-    }
+	rowTable := L.NewTable()
+	for i, col := range columns {
+		val := values[i]
+		if val == nil {
+			L.SetField(rowTable, col, lua.LNil)
+		} else {
+			L.SetField(rowTable, col, ConvertGolangTypesToLua(L, val))
+		}
+	}
 
-    L.Push(rowTable)
-    return 1
+	L.Push(rowTable)
+	return 1
 }
 
 func dbQuery(L *lua.LState) int {
